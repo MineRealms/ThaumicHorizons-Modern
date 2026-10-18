@@ -11,12 +11,7 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActivation;
-import dev.tc4port.thaumcraft.api.focus.action.FocusCastAnimation;
 import dev.tc4port.thaumcraft.api.item.ThaumcraftItemApi;
-import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import dev.tc4port.thaumcraft.registry.CrystalEssences;
@@ -44,7 +39,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,23 +93,21 @@ public final class DisintegrationFocus {
         // The rates and the critter cost come from the focus catalog; declaring them stops a datapack dropping them.
         FocusApi.requireParameters(ItemFocusDisintegration.ID, Set.of("vis_discount", "break_speed", "enlarge"));
         FocusApi.requireActionCosts(ItemFocusDisintegration.ID, Set.of(CRITTER));
-        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusDisintegration.ID),
-                EnumSet.of(FocusActivation.USE_AIR, FocusActivation.USING_TICK, FocusActivation.STOP_USING),
-                ResearchRequirement.required(RESEARCH), RANGE, 0, FocusCastAnimation.CONTINUOUS,
-                ActionPresentationAudience.PREDICTED), DisintegrationFocus::handle);
+        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusDisintegration.ID, FocusCompat.Aim.AIR,
+                FocusCompat.Mode.CHANNEL, true, ResearchRequirement.required(RESEARCH), RANGE, 0),
+                DisintegrationFocus::handle);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (context.activation()) {
-            case USE_AIR -> FocusActionResult.START_USING;
-            case STOP_USING -> {
+        return switch (FocusCompat.phase(context)) {
+            case PRESS -> FocusActionResult.START_USING;
+            case STOP -> {
                 if (action == VisAction.EXECUTE) {
                     stop(context);
                 }
                 yield FocusActionResult.SUCCESS;
             }
-            case USING_TICK -> tick(context, action);
-            default -> FocusActionResult.PASS;
+            case TICK -> tick(context, action);
         };
     }
 

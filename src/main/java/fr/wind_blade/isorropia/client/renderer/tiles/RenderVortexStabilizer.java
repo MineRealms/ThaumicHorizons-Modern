@@ -58,6 +58,7 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
         poseStack.pushPose();
         poseStack.translate(0.5F, 1.0F, 0.5F);
         poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+        orient(facing, poseStack);
         VertexConsumer base = buffers.getBuffer(RenderType.entityCutoutNoCull(BASE));
         mesh.render("lock", poseStack, base, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
         VertexConsumer glow = buffers.getBuffer(RenderType.entityTranslucent(OVERLAY));
@@ -113,5 +114,21 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
     }
 
     private record RibbonPoint(Vec3 position, float u, float alpha) {
+    }
+
+    /**
+     * Rotate the head so its mounting plate lies against the face it was placed on and the stem points at the node,
+     * the way the transduction amplifier is oriented. Without this the head always stood upright, so one hung on a
+     * wall or ceiling read as a quarter turn out of place.
+     */
+    private static void orient(Direction facing, PoseStack poseStack) {
+        switch (facing) {
+            case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
+            case NORTH -> poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
+            case SOUTH -> poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            case WEST -> poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+            case EAST -> poseStack.mulPose(Axis.ZP.rotationDegrees(-90.0F));
+            default -> { /* UP: the model already points up */ }
+        }
     }
 }

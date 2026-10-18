@@ -7,11 +7,6 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActivation;
-import dev.tc4port.thaumcraft.api.focus.action.FocusCastAnimation;
-import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
@@ -34,7 +29,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -82,16 +76,16 @@ public final class ContainmentFocus {
     public static void register() {
         // The two rates come from the focus catalog; declaring them stops a datapack from dropping either.
         FocusApi.requireParameters(ItemFocusContainment.ID, Set.of("first_hold", "hold_rate"));
-        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusContainment.ID),
-                EnumSet.of(FocusActivation.USE_AIR, FocusActivation.USING_TICK), ResearchRequirement.required(RESEARCH),
-                RANGE, 0, FocusCastAnimation.CONTINUOUS, ActionPresentationAudience.PREDICTED), ContainmentFocus::handle);
+        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusContainment.ID, FocusCompat.Aim.AIR,
+                FocusCompat.Mode.CHANNEL, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
+                ContainmentFocus::handle);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (context.activation()) {
-            case USE_AIR -> FocusActionResult.START_USING;
-            case USING_TICK -> tick(context, action);
-            default -> FocusActionResult.PASS;
+        return switch (FocusCompat.phase(context)) {
+            case PRESS -> FocusActionResult.START_USING;
+            case TICK -> tick(context, action);
+            case STOP -> FocusActionResult.PASS;
         };
     }
 

@@ -67,6 +67,8 @@ public class Isorropia {
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(LiquefactionFocus::register));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(DisintegrationFocus::register));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(AnimationFocus::register));
+        // The focus profiles ship in a pack of their own so the 20740 and 20744 catalog shapes can both be served.
+        modBus.addListener(fr.wind_blade.isorropia.common.focus.FocusCatalogPack::onAddPackFinders);
         // TC4R 20740: vis sources are a BlockCapability, and TC4R only registers its own node BE
         // for it. NeoForge resolves caps through this central registry (no getCapability override),
         // so the two dynamos are wired here; the essentia transport cap needs nothing - TC4R

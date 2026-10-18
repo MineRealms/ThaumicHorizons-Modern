@@ -304,9 +304,19 @@ public class TileVortex extends BlockEntity implements AspectContainerView {
             }
             Vec3 from = Vec3.atCenterOf(pos);
             Vec3 to = new Vec3(tx + 0.5, ty + 0.5, tz + 0.5);
+            //? if neoforge {
+            /*// 1.21.1 takes a CollisionContext and dereferences it: a null entity NPEs inside
+            // EntityCollisionContext, so the rift crashed the server tick the moment it chewed.
             BlockHitResult hit = level.clip(new net.minecraft.world.level.ClipContext(from, to,
-                    net.minecraft.world.level.ClipContext.Block.COLLIDER,                     net.minecraft.world.level.ClipContext.Fluid.NONE,
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                    net.minecraft.world.level.ClipContext.Fluid.NONE,
+                    net.minecraft.world.phys.shapes.CollisionContext.empty()));
+            *///?} else {
+            BlockHitResult hit = level.clip(new net.minecraft.world.level.ClipContext(from, to,
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                    net.minecraft.world.level.ClipContext.Fluid.NONE,
                     (net.minecraft.world.entity.Entity) null));
+            //?}
             if (hit.getType() != HitResult.Type.BLOCK || hit.getBlockPos().distSqr(pos) >= 256.0) {
                 continue;
             }

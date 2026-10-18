@@ -10,11 +10,6 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActivation;
-import dev.tc4port.thaumcraft.api.focus.action.FocusCastAnimation;
-import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
@@ -33,7 +28,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,13 +62,13 @@ public final class AnimationFocus {
     public static void register() {
         // The span comes from the focus catalog; declaring it stops a datapack from dropping it.
         FocusApi.requireParameters(ItemFocusAnimation.ID, Set.of("vis_discount", "duration"));
-        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusAnimation.ID),
-                EnumSet.of(FocusActivation.USE_BLOCK), ResearchRequirement.required(RESEARCH),
-                RANGE, 0, FocusCastAnimation.INSTANT, ActionPresentationAudience.PREDICTED), AnimationFocus::handle);
+        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusAnimation.ID, FocusCompat.Aim.BLOCK,
+                FocusCompat.Mode.INSTANT, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
+                AnimationFocus::handle);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        if (context.activation() != FocusActivation.USE_BLOCK) {
+        if (FocusCompat.phase(context) != FocusCompat.Phase.PRESS) {
             return FocusActionResult.PASS;
         }
         if (!(context.authoritativeHit() instanceof BlockHitResult hit)) {

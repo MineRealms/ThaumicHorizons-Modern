@@ -6,11 +6,6 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
-import dev.tc4port.thaumcraft.api.focus.action.FocusActivation;
-import dev.tc4port.thaumcraft.api.focus.action.FocusCastAnimation;
-import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import dev.tc4port.thaumcraft.common.ArcaneBoreMiningResults;
@@ -47,7 +42,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,21 +129,19 @@ public final class LiquefactionFocus {
         // The rates and the critter cost come from the focus catalog; declaring them stops a datapack dropping them.
         FocusApi.requireParameters(ItemFocusLiquefaction.ID, Set.of("vis_discount", "break_speed", "enlarge"));
         FocusApi.requireActionCosts(ItemFocusLiquefaction.ID, Set.of(CRITTER));
-        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusLiquefaction.ID),
-                EnumSet.of(FocusActivation.USE_AIR, FocusActivation.USING_TICK, FocusActivation.STOP_USING),
-                ResearchRequirement.required(RESEARCH), RANGE, 0, FocusCastAnimation.CONTINUOUS,
-                ActionPresentationAudience.PREDICTED), LiquefactionFocus::handle);
+        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusLiquefaction.ID, FocusCompat.Aim.AIR,
+                FocusCompat.Mode.CHANNEL, true, ResearchRequirement.required(RESEARCH), RANGE, 0),
+                LiquefactionFocus::handle);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (context.activation()) {
-            case USE_AIR -> FocusActionResult.START_USING;
-            case STOP_USING -> {
+        return switch (FocusCompat.phase(context)) {
+            case PRESS -> FocusActionResult.START_USING;
+            case STOP -> {
                 forget(context.player().getUUID());
                 yield FocusActionResult.SUCCESS;
             }
-            case USING_TICK -> tick(context, action);
-            default -> FocusActionResult.PASS;
+            case TICK -> tick(context, action);
         };
     }
 

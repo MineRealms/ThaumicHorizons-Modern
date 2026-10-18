@@ -1,0 +1,67 @@
+{
+  "focus_profiles": [
+    {
+      "focus": "isorropia:focus_illumination",
+      "color": 14602026,
+      "per_tick": false,
+      "base_cost": {
+        "ignis": 100,
+        "aer": 100
+      },
+      "ranks": [
+        [
+          "thaumcraft:frugal"
+        ],
+        [
+          "thaumcraft:frugal"
+        ],
+        [
+          "thaumcraft:frugal",
+          "isorropia:solar"
+        ],
+        [
+          "thaumcraft:frugal"
+        ],
+        [
+          "thaumcraft:frugal"
+        ]
+      ],
+      "parameters": {
+        "vis_discount": {
+          "base": 0,
+          "per_level": {
+            "thaumcraft:frugal": 0.1
+          },
+          "min": 0,
+          "max": 1
+        }
+      },
+      "pipeline": {
+        "modules": [
+          "thaumcraft:focus_actions"
+        ],
+        "bindings": [
+          {
+            "id": "isorropia:actions/cast",
+            "stage": "thaumcraft:cast/step",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          },
+          {
+            "id": "isorropia:actions/block",
+            "stage": "thaumcraft:use/before_formation",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          },
+          {
+            "id": "isorropia:actions/input",
+            "stage": "thaumcraft:client/input_after_block",
+            "handler": "thaumcraft:focus_actions",
+            "priority": -100
+          }
+        ],
+        "casts": {}
+      }
+    }
+  ]
+}
