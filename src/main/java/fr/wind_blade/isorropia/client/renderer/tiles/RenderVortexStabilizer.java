@@ -56,8 +56,11 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
 
         // The emitter head, using Thaumcraft's stabilizer transform so it reads as a machine in the block.
         poseStack.pushPose();
-        poseStack.translate(0.5F, 1.0F, 0.5F);
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+        // Thaumcraft's own transform, byte for byte: the lock sits in the lower half of the block and the gold
+        // collar faces up. Anchoring it at the block top and spinning +90 instead left the head a half turn over
+        // and a whole block high, which is what read as a ninety degree error in world.
+        poseStack.translate(0.5F, 0.0F, 0.5F);
+        poseStack.mulPose(Axis.XN.rotationDegrees(90.0F));
         orient(facing, poseStack);
         VertexConsumer base = buffers.getBuffer(RenderType.entityCutoutNoCull(BASE));
         mesh.render("lock", poseStack, base, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
