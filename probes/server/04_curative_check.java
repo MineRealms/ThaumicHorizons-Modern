@@ -7,7 +7,7 @@ var master = new net.minecraft.core.BlockPos(Integer.parseInt(parts[0]), Integer
 var vat = (fr.wind_blade.isorropia.common.tiles.TileVat) level.getBlockEntity(master);
 var contained = vat.getContained();
 sb.append("contained=").append(contained == null ? "NONE" : contained.getType() + " hp=" + contained.getHealth() + "/" + contained.getMaxHealth());
-var jar = level.getBlockEntity(master.offset(0, -2, 2));
+var jar = level.getBlockEntity(master.offset(0, -3, 3));
 if (jar instanceof dev.tc4port.thaumcraft.api.essentia.EssentiaJarView view) {
     sb.append("\njarAspects=").append(view.visibleAspects().amounts());
 }
