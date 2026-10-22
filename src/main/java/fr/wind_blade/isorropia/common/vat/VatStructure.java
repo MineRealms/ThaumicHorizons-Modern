@@ -147,13 +147,22 @@ public final class VatStructure {
         return partAt(pos.getX() - master.getX(), pos.getY() - master.getY(), pos.getZ() - master.getZ());
     }
 
-    /** The master of the formed vat containing {@code pos}: the block entity at the top centre. */
+    /**
+     * The master of the formed vat containing {@code pos}: the block entity at the top centre. A ring block
+     * sits one to three blocks below the master and a block to the side, so the search covers the whole 3x3
+     * footprint the block could belong to: a straight upward search finds nothing from the glass, the wood or
+     * the connectors, which left them unable to answer a click, a tube or their own breaking.
+     */
     @Nullable
     public static TileVat findMaster(Level level, BlockPos pos) {
         for (int dy = 0; dy < HEIGHT; dy++) {
-            BlockPos candidate = pos.above(dy);
-            if (level.getBlockEntity(candidate) instanceof TileVat vat && vat.isMaster()) {
-                return vat;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    BlockPos candidate = pos.offset(-dx, dy, -dz);
+                    if (level.getBlockEntity(candidate) instanceof TileVat vat && vat.isMaster()) {
+                        return vat;
+                    }
+                }
             }
         }
         return null;

@@ -13,6 +13,7 @@ import dev.tc4port.thaumcraft.api.machine.InfusionPedestal;
 import dev.tc4port.thaumcraft.api.node.VisNetworkApi;
 import fr.wind_blade.isorropia.common.IsorropiaAspects;
 import fr.wind_blade.isorropia.common.blocks.BlockCurativeVat;
+import fr.wind_blade.isorropia.common.blocks.BlocksIS;
 import fr.wind_blade.isorropia.common.compat.ThaumBridge;
 import fr.wind_blade.isorropia.common.network.ClientFxPacket;
 import fr.wind_blade.isorropia.common.sounds.SoundsIS;
@@ -61,11 +62,16 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * The curative vat. While idle it heals the creature soaking in it, one essentia at a time. Once a wand
- * switches on the modified matrix above it, the items on the pedestals around the vat and the creature inside
- * are matched against a {@link CreatureInfusionRecipe} (or a {@link SelfInfusionRecipe} in a reincarnation
- * body) and the infusion runs one cycle per second, draining celestial aura, essentia, pedestal items and vis
- * while instability builds up behind every step and occasionally throws something back.
+ * The curative vat. While idle it heals the creature soaking in it, one essentia at a time. A wand tap on the
+ * modified matrix above it matches the items on the pedestals around the vat and the creature inside against a
+ * {@link CreatureInfusionRecipe} (or a {@link SelfInfusionRecipe} in a reincarnation body) and the infusion
+ * runs one cycle per second, draining celestial aura, essentia, pedestal items and vis while instability
+ * builds up behind every step and occasionally throws something back.
+ *
+ * <p>A creature is put in the vat in a soul jar and the player climbs in through any of its blocks; upstream
+ * let a creature infusion take a contained player as its subject too — the effigy path it used instead needs
+ * the vat gui this port does not have — and only organ recipes target "any", so a player can gain organs but
+ * is never turned into another species.
  *
  * <p>Every vat block is this same block entity; only the block at the top centre (variant TOP) is the master
  * and holds the state. The other vat blocks forward their essentia endpoints to it.
@@ -166,7 +172,11 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
     }
 
     public boolean isMaster() {
-        return getBlockState().getValue(BlockCurativeVat.VARIANT) == BlockCurativeVat.Type.TOP;
+        // A vat block entity can outlive its block — a tube driven through the shell by a player or a probe
+        // leaves the old entity behind — and reading the property off a foreign blockstate throws.
+        BlockState state = getBlockState();
+        return state.is(BlocksIS.CURATIVE_VAT.get())
+                && state.getValue(BlockCurativeVat.VARIANT) == BlockCurativeVat.Type.TOP;
     }
 
     /** The master of the vat this block belongs to; this block entity itself for the top centre. */
@@ -195,10 +205,14 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
     /**
      * The idle modes are a reading of the vat's contents rather than a state of their own, so they are
      * recomputed instead of remembered: a creature in the vat always means curing, an effigy with nothing in
-     * the vat always means soaking, and only a running infusion keeps its own mode.
+     * the vat always means soaking. A soaked effigy is the exception — a ready body keeps waiting in mode 4
+     * until something takes it, which is what the soul beacon's rebirth and the self infusions read.
      */
     private void normalizeMode() {
         if (mode == MODE_INFUSING) {
+            return;
+        }
+        if (mode == MODE_SELF_READY && contained == null && hasEffigy) {
             return;
         }
         mode = hasEffigy && contained == null ? MODE_EFFIGY : MODE_IDLE;
@@ -252,19 +266,24 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
             curativeUpdate(level);
         } else if (mode == MODE_EFFIGY) {
             effigyUpdate(level);
-        } else if (mode == MODE_INFUSING && active && count % cycleTicks == 0) {
-            if (count % (cycleTicks * 20) == 0) {
-                pedestals = null;
-                refreshStability(level);
+        } else if (mode == MODE_INFUSING && active) {
+            // Upstream drew its essentia every tick, not once per cycle: through a tube, one unit per aspect
+            // per cycle would take a 50+50 recipe a hundred seconds to feed.
+            pullInfusionEssentia(level);
+            if (count % cycleTicks == 0) {
+                if (count % (cycleTicks * 20) == 0) {
+                    pedestals = null;
+                    refreshStability(level);
+                }
+                infusionCycle(level);
             }
-            infusionCycle(level);
         }
     }
 
     /** The vat winds up to full over a few seconds and unwinds the same way, as upstream's updateStartUp. */
     private void updateStartUp() {
         float step = Math.max(startUp / 10.0F, 0.001F);
-        if (active && (mode == MODE_INFUSING || !expunge)) {
+        if (active && mode == MODE_INFUSING) {
             startUp = Math.min(1.0F, startUp + step);
         } else {
             startUp = Math.max(0.0F, startUp - step);
@@ -324,11 +343,13 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
     // ---------------------------------------------------------------- infusion
 
     /**
-     * Starts an infusion from the pedestals around the vat. The modified matrix calls this after switching
-     * the vat on, so a vat that is off never begins work it would then sit still through.
+     * Starts an infusion from the pedestals around the vat, as a single wand tap on the matrix does upstream.
+     * A contained player is a legitimate subject: the effigy path upstream used instead needs the vat gui this
+     * port does not have, and only organ recipes target "any", so a player gains organs and is never turned
+     * into another species. A tap that finds nothing to infuse changes nothing and the vat stays put.
      */
     public boolean startInfusion(Player player) {
-        if (level == null || mode == MODE_INFUSING || !active) {
+        if (!(level instanceof ServerLevel server) || mode == MODE_INFUSING) {
             return false;
         }
         List<ItemStack> items = pedestalItems();
@@ -368,10 +389,11 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
             needed.putAll(recipe.aspects());
         }
         mode = MODE_INFUSING;
+        active = true;
         count = 0;
         pedestals = null;
-        refreshStability((ServerLevel) level);
-        level.playSound(null, worldPosition, SoundsIS.CURATIVE_INFUSION_START.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
+        refreshStability(server);
+        server.playSound(null, worldPosition, SoundsIS.CURATIVE_INFUSION_START.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
         sync();
         return true;
     }
@@ -441,7 +463,11 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         return false;
     }
 
-    /** Pulls whatever essentia the infusion is still short of; the step passes when nothing is left. */
+    /**
+     * Pulls whatever essentia the infusion is still short of; the step passes when nothing is left. The drawing
+     * itself happens every tick in {@link #pullInfusionEssentia} — this only publishes the demand so tubes
+     * know what the vat will take.
+     */
     private boolean essentiaStep(ServerLevel level) {
         clearDemand();
         boolean ready = true;
@@ -450,13 +476,25 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
                 continue;
             }
             demand(entry.getKey(), entry.getValue());
-            pullEssentia(level, entry.getKey());
             ready = false;
         }
         if (ready) {
             needed.clear();
         }
         return ready;
+    }
+
+    /**
+     * Takes one unit of each aspect the infusion still needs out of the neighbouring essentia endpoints, every
+     * tick, as upstream did. Doing it once per cycle instead left a 50+50 recipe a hundred seconds to feed
+     * through a saturated tube.
+     */
+    private void pullInfusionEssentia(ServerLevel level) {
+        for (Map.Entry<AspectId, Integer> entry : needed.entrySet()) {
+            if (entry.getValue() > 0) {
+                pullEssentia(level, entry.getKey());
+            }
+        }
     }
 
     /** Consumes one pedestal item per cycle; passes once every ingredient has been taken. */
@@ -482,7 +520,12 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         return components.isEmpty();
     }
 
-    /** Drains the whole-vis cost from the vis network, one channel per cycle. */
+    /**
+     * Drains the whole-vis cost from the vis network, one channel per cycle. The drain is taken at the matrix
+     * above the vat, as upstream's matrix was a network node; Thaumcraft's own network resolves any position
+     * to the sources near it, so no node has to stand there — a node within reach is enough, as for every
+     * other vis-driven machine.
+     */
     private boolean visStep(ServerLevel level) {
         if (visNeeded.isEmpty()) {
             return true;
@@ -516,6 +559,7 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
             }
         }
         mode = contained == null && hasEffigy ? MODE_SELF_READY : MODE_IDLE;
+        active = false;
         needed.clear();
         stored.clear();
         demanded.clear();
@@ -838,10 +882,11 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
 
     /**
      * Moves an occupant. A player has to be moved through their connection: a bare position change on the
-     * server is undone by the client's next movement packet, which left players unable to get out.
+     * server is undone by the client's next movement packet, which left players unable to get out. A player
+     * without a connection — a fake one, from a probe or another mod — has only the bare move.
      */
     private static void place(LivingEntity entity, double x, double y, double z) {
-        if (entity instanceof ServerPlayer player) {
+        if (entity instanceof ServerPlayer player && player.connection != null) {
             player.connection.teleport(x, y, z, player.getYRot(), player.getXRot());
         } else {
             entity.setPos(x, y, z);
@@ -956,6 +1001,16 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
 
     public boolean isInfusing() {
         return mode == MODE_INFUSING;
+    }
+
+    /** Whether any pedestal around the vat holds something, for the wand tap's refusal message. */
+    public boolean hasPedestalItems() {
+        return !pedestalItems().isEmpty();
+    }
+
+    /** Whether the effigy has taken its victus and the vat is a ready body waiting for a soul. */
+    public boolean effigySoaked() {
+        return effigyEssentia >= EFFIGY_ESSENTIA;
     }
 
     /** True while a self infusion runs, which is the state that shows the revived body in the vat. */

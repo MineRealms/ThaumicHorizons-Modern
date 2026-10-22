@@ -52,6 +52,8 @@
   "lens.ordo_lens": "学者透镜",
   "lens.envy_lens": "诡术师之镜",
   "isorropia.containment.fail": "捕获失败",
+  "isorropia.curative.no_pedestals": "治疗缸周围的基座上没有物品",
+  "isorropia.curative.no_recipe": "缸中的对象与基座上的物品无法匹配（需要相应研究）",
   "isorropia.setBeacon": "灵魂信标已设置！",
   "key.isorropia.fingers": "打开塑形之手",
   "container.isorropia.morphic_fingers": "塑形之手",

@@ -52,6 +52,8 @@
   "lens.ordo_lens": "Scholar's Lens",
   "lens.envy_lens": "Trickster's Lens",
   "isorropia.containment.fail": "Capture failed",
+  "isorropia.curative.no_pedestals": "The pedestals around the vat are empty",
+  "isorropia.curative.no_recipe": "Nothing in the vat answers the items on the pedestals",
   "isorropia.setBeacon": "Soul Beacon Set!",
   "key.isorropia.fingers": "Open Morphic Fingers",
   "container.isorropia.morphic_fingers": "Morphic Fingers",

@@ -71,24 +71,15 @@ public class BlockCurativeVat extends Block implements EntityBlock {
     }
 
     /**
-     * Right-clicking a vat block: an empty hand on an empty vat puts the player in, and a hand on the vat the
-     * player is already in lets them out. Everything that arrives in a jar happens once the soul jar exists.
+     * Right-clicking any block of a formed vat, or the liquid column inside it. Upstream forwarded every vat
+     * block — the constructs, the glass, the wood and the water alike — to one handler, and this keeps that:
+     * a creature in a soul jar goes in, a creature in the vat comes back out into a warded jar, a corpse effigy
+     * goes in to soak (and an empty hand takes an unsoaked one back), the player climbs into a free vat and
+     * out of the one they are already in. Because the glass counts too, a matrix sitting on top no longer
+     * seals the vat shut.
      */
-    //? if forge {
-    @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-            BlockHitResult hit) {
-    //?} else {
-    /*@Override
-    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack held,
-            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-            BlockHitResult hit) {
-        return fr.wind_blade.isorropia.common.platform.BlockInteractions.toItemResult(use(state, level, pos, player, hand, hit));
-    }
-
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-            BlockHitResult hit) {
-    *///?}
+    public static InteractionResult interact(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit) {
         if (hand != InteractionHand.MAIN_HAND) {
             return InteractionResult.PASS;
         }
@@ -122,15 +113,58 @@ public class BlockCurativeVat extends Block implements EntityBlock {
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
+        // The corpse effigy is what a body is grown from: one at a time, and only into an empty vat.
+        if (player.getItemInHand(hand).is(ItemsIS.CORPSE_EFFIGY.get()) && !master.hasEffigy()
+                && master.getContained() == null && !master.isInfusing()) {
+            if (!level.isClientSide) {
+                player.getItemInHand(hand).shrink(1);
+                master.setHasEffigy(true);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        // An empty hand takes an unsoaked effigy back out; once it has begun soaking it is spent.
+        if (player.getItemInHand(hand).isEmpty() && master.hasEffigy() && !master.effigySoaked()
+                && master.getContained() == null && !master.isInfusing()) {
+            if (!level.isClientSide) {
+                master.setHasEffigy(false);
+                ItemStack effigy = new ItemStack(ItemsIS.CORPSE_EFFIGY.get());
+                if (!player.getInventory().add(effigy)) {
+                    player.drop(effigy, false);
+                }
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
         if (master.getContained() != null || master.isInfusing()) {
             return InteractionResult.PASS;
         }
-        if (VatStructure.isInterior(level, pos) || state.getValue(VARIANT) == Type.TOP) {
-            master.setContained(player);
-            return InteractionResult.sidedSuccess(level.isClientSide);
+        // The vat is free: the wizard steps in, whatever else they were holding.
+        if (level.isClientSide) {
+            return InteractionResult.sidedSuccess(true);
         }
-        return InteractionResult.PASS;
+        master.setContained(player);
+        return InteractionResult.sidedSuccess(false);
     }
+
+    //? if forge {
+    @Override
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+            BlockHitResult hit) {
+        return interact(state, level, pos, player, hand, hit);
+    }
+    //?} else {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(net.minecraft.world.item.ItemStack held,
+            BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+            BlockHitResult hit) {
+        return fr.wind_blade.isorropia.common.platform.BlockInteractions.toItemResult(
+                interact(state, level, pos, player, hand, hit));
+    }
+
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
+            BlockHitResult hit) {
+        return interact(state, level, pos, player, hand, hit);
+    }
+    *///?}
 
     @Nullable
     private static TileVat masterAt(Level level, BlockPos pos) {
