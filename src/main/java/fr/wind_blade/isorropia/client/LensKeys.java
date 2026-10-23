@@ -3,7 +3,6 @@ package fr.wind_blade.isorropia.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.client.hud.LensWheel;
-import fr.wind_blade.isorropia.common.lenses.Lens;
 import fr.wind_blade.isorropia.common.lenses.LensManager;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -21,8 +20,8 @@ import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * The lens key. Holding it opens the wheel for one of the goggles' two slots; sneaking and tapping it empties
- * both, so a lens can be changed without a menu at all.
+ * The lens key. Holding it opens the wheel, which draws one ring per goggles slot and fits to whichever ring the
+ * mouse is over; sneaking and tapping it empties both, so a lens can be changed without a menu at all.
  */
 public final class LensKeys {
     public static final String CATEGORY = "key.categories.misc";
@@ -84,7 +83,7 @@ public final class LensKeys {
             if (!LensManager.isGoggles(minecraft.player.getItemBySlot(EquipmentSlot.HEAD))) {
                 return;
             }
-            LensWheel.open(Lens.Slot.LEFT, minecraft.player.isShiftKeyDown(), true);
+            LensWheel.open(minecraft.player.isShiftKeyDown(), true);
         }
     }
 }

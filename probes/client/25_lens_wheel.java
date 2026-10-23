@@ -29,8 +29,7 @@ var sb = new StringBuilder("fitted=" + fitted + " goggles=" + !goggles.isEmpty()
 // The wheel is opened on the client thread, and the screenshot happens in a later call.
 mc.execute(() -> {
     mc.options.hideGui = false;
-    fr.wind_blade.isorropia.client.hud.LensWheel.open(
-            fr.wind_blade.isorropia.common.lenses.Lens.Slot.RIGHT, false, false);
+    fr.wind_blade.isorropia.client.hud.LensWheel.open(false, false);
 });
 sb.append(" wheelOpen=").append(fr.wind_blade.isorropia.client.hud.LensWheel.isOpen());
 return sb.toString();

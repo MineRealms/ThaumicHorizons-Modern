@@ -100,10 +100,12 @@ S2、S3 在独立 worktree 分支上并行（`../Isorropia-wt/s2-data`、`../Iso
 
 - **透镜系统**：`common/lenses/{Lens,AirLens,FireLens,OrdoLens,EnvyLens,Lenses,LensManager,EnvyStealing}.java`。
   透镜存在**护目镜自身的 NBT**（`isorropia:lenses:{left,right}`）里，与 1.12 一致——护目镜是挂载点，没有护目镜透镜无用。
-  火透镜给夜视（装上即生效、卸下即移除）、学者透镜用 TC4R 的 `ScanManager` 研究视线目标（包在 `compat/ScanBridge`）、
-  嫉妒透镜把生物的掉落「看」出来（`EnvyStealing` 真滚一次掉落表）、基里安透镜纯客户端绘制。
+  火透镜给夜视（装上即生效、卸下即移除，归属用玩家持久数据标记，不会误删玩家自己喝的夜视药水）、
+  学者透镜用 TC4R 的 `ScanManager` 每 tick 研究视线目标（包在 `compat/ScanBridge`，1.12 也是每 tick；1.7 的 250 tick 凝视已废弃）、
+  嫉妒透镜把生物的掉落「看」出来（`EnvyStealing` 真滚一次掉落表，不带 killer，与 1.12 一致所以吃不到抢夺）、基里安透镜纯客户端绘制。
   网络：`LensChangePacket`（装配/卸下，服务端校验护目镜与物品）。
-- **透镜轮盘**：`client/hud/LensWheel.java` + `client/LensKeys.java`（默认 **J**）。按住打开、鼠标指向选片、潜行则清空两槽；
+- **透镜轮盘**：`client/hud/LensWheel.java` + `client/LensKeys.java`（默认 **J**）。按住打开，**准星左右各一个环对应左右两个槽**，
+  鼠标在哪半屏就装到哪个槽；潜行 + 按 J 清空两槽。换镜会把旧镜还回背包（满则掉落），不会吞物品。
   环用 `fill` 画（上游用的是 TC 的 radial 贴图，不属于本模组）。**实机已验证**装配与效果，`--gui` 截图确认轮盘像素。
 - **躯体大脑**：`ItemSomaticBrain`（Curios 头部）、`ModelSomaticBrain`、`SomaticBrainCurioRenderer`；
   本模组自带 `data/isorropia/curios/{slots/head.json,entities/player.json}` 声明头部槽位（TC4R 只声明了 ring/necklace/belt）。
