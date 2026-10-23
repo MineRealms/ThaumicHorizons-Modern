@@ -352,3 +352,15 @@ tasks.withType(JavaCompile).configureEach {
     // 1.21.1 dialect is measured, not iterated one error at a time.
     options.compilerArgs.addAll(['-Xmaxerrs', '2000'])
 }
+
+// The distributed file carries the Chinese name the project calls itself; the artifact above stays ASCII
+// because Forge's reobf hands its jar path to a separate renamer process, which mangles non-ASCII paths on
+// Windows. `build` therefore leaves both: the ASCII artifact and its Chinese-named copy beside it.
+tasks.named('build').configure { finalizedBy 'nameReleaseJar' }
+tasks.register('nameReleaseJar', Copy) {
+    from(layout.buildDirectory.dir('libs')) {
+        include "${base.archivesName.get()}-${project.version}.jar"
+    }
+    into layout.buildDirectory.dir('libs')
+    rename { "${mod_file_name}-${minecraft_version}-${project.version}.jar" }
+}
