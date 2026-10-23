@@ -88,11 +88,6 @@ public abstract class Lens {
         return id.isEmpty() ? null : Lenses.byId(ResourceLocation.tryParse(id));
     }
 
-    /** True if either slot is filled, which is what the goggles' tooltip and HUD look for. */
-    public static boolean hasAny(ItemStack goggles) {
-        return read(goggles, Slot.LEFT) != null || read(goggles, Slot.RIGHT) != null;
-    }
-
     public static ResourceLocation id(String path) {
         return Isorropia.id(path);
     }

@@ -47,18 +47,28 @@ public final class LensManager {
         return stack.getItem() instanceof GogglesOverlayGear;
     }
 
-    /** Fits a lens, which costs the lens item from the player's hands. */
+    /**
+     * Fits a lens, which costs the lens item from the player's hands. Whatever was in the slot is handed back
+     * first, as upstream did: changing a lens must never destroy the one that was there.
+     */
     public static boolean fit(ServerPlayer player, Lens.Slot slot, Lens lens, ItemStack lensItem) {
         ItemStack goggles = goggles(player);
         if (goggles.isEmpty()) {
             return false;
         }
-        if (Lens.read(goggles, slot) == lens) {
+        Lens previous = Lens.read(goggles, slot);
+        if (previous == lens) {
             return false;
+        }
+        if (previous != null) {
+            previous.onRemoved(player);
         }
         Lens.write(goggles, slot, lens);
         if (!player.getAbilities().instabuild) {
             lensItem.shrink(1);
+        }
+        if (previous != null) {
+            give(player, itemFor(previous));
         }
         syncTo(player);
         return true;
@@ -72,10 +82,20 @@ public final class LensManager {
             return false;
         }
         Lens.write(goggles, slot, null);
-        player.addItem(itemFor(lens));
         lens.onRemoved(player);
+        give(player, itemFor(lens));
         syncTo(player);
         return true;
+    }
+
+    /** Hands an item over, dropping it at the player's feet when there is no room, so nothing is ever lost. */
+    private static void give(ServerPlayer player, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return;
+        }
+        if (!player.getInventory().add(stack)) {
+            player.drop(stack, false);
+        }
     }
 
     /** The item that represents a lens, for handing one back or showing it in a menu. */
