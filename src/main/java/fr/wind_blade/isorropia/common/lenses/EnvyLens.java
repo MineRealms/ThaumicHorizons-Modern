@@ -49,7 +49,7 @@ public class EnvyLens extends Lens {
             data.addEnvy(ENVY_PER_TICK);
             if (data.getEnvy() >= target.getMaxHealth() * HEALTH_FACTOR) {
                 if (player.level() instanceof ServerLevel level) {
-                    for (ItemStack stack : EnvyStealing.rollDrops(level, target, player)) {
+                    for (ItemStack stack : EnvyStealing.rollDrops(level, target)) {
                         target.spawnAtLocation(stack);
                     }
                 }

@@ -3,7 +3,6 @@ package fr.wind_blade.isorropia.common.lenses;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -18,7 +17,11 @@ public final class EnvyStealing {
     private EnvyStealing() {
     }
 
-    public static List<ItemStack> rollDrops(ServerLevel level, LivingEntity target, Player thief) {
+    /**
+     * The roll is the creature's own, with nobody credited for the kill: upstream passed only the looted entity,
+     * so a looting sword does not multiply what the lens sees, and neither do player-kill-only pools.
+     */
+    public static List<ItemStack> rollDrops(ServerLevel level, LivingEntity target) {
         //? if forge {
         ResourceLocation table = target.getLootTable();
         //?} else {
@@ -35,9 +38,7 @@ public final class EnvyStealing {
         LootParams params = new LootParams.Builder(level)
                 .withParameter(LootContextParams.THIS_ENTITY, target)
                 .withParameter(LootContextParams.ORIGIN, target.position())
-                .withParameter(LootContextParams.DAMAGE_SOURCE, level.damageSources().playerAttack(thief))
-                .withOptionalParameter(LootContextParams.KILLER_ENTITY, thief)
-                .withOptionalParameter(LootContextParams.LAST_DAMAGE_PLAYER, thief)
+                .withParameter(LootContextParams.DAMAGE_SOURCE, level.damageSources().generic())
                 .create(LootContextParamSets.ENTITY);
         List<ItemStack> drops = new ArrayList<>();
         loot.getRandomItems(params, drops::add);
