@@ -43,6 +43,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LevelEvent;
@@ -1350,10 +1351,23 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         drawingAura = tag.getBoolean("DrawingAura");
     }
 
+    /**
+     * Pushes the synced state to the players watching the vat. A block update carrying the state it already has
+     * does not deliver block entity data — {@code ServerLevel#sendBlockUpdated} only queues the position for the
+     * chunk's block broadcast — so the vat's mode, essentia and flux used to stay frozen on the client at
+     * whatever the chunk was loaded with, and the corpse was never drawn. The update packet goes out directly.
+     */
     private void sync() {
         setChanged();
-        if (level != null) {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+        if (!(level instanceof ServerLevel server)) {
+            return;
+        }
+        ClientboundBlockEntityDataPacket packet = getUpdatePacket();
+        if (packet == null) {
+            return;
+        }
+        for (ServerPlayer watcher : server.getChunkSource().chunkMap.getPlayers(new ChunkPos(worldPosition), false)) {
+            watcher.connection.send(packet);
         }
     }
 
