@@ -43,8 +43,12 @@ public class RenderVat implements BlockEntityRenderer<TileVat> {
     private static final List<String> WATER_GROUP = List.of("Water");
     /** How many blocks the mesh sits below the master: the master is the top layer. */
     private static final double LAYERS_BELOW = 3.0;
-    /** Both upstreams drew the corpse at this scale, which is a little larger than a player. */
-    private static final float CORPSE_SCALE = 0.1F;
+    /**
+     * Upstream passed 0.1 to a 1.7/1.12 model, whose vertices are still in sixteenths of a block, so the body
+     * came out a little larger than a player. A modern model is already in blocks, where the same number would
+     * be a two-pixel speck; 0.9 is the size that fills the vat's two-block interior.
+     */
+    private static final float CORPSE_SCALE = 1.2F;
 
     private final HumanoidModel<?> corpse;
 
@@ -59,19 +63,21 @@ public class RenderVat implements BlockEntityRenderer<TileVat> {
             return;
         }
         celestialAbsorption(vat);
+        ObjMesh mesh = ObjMesh.get(MODEL);
+        // The liquid is drawn first and leaves the depth buffer alone, so whatever stands in it is drawn over
+        // the surface rather than under an 85% opaque sheet, which is the order upstream had. The shell goes
+        // over both.
         poseStack.pushPose();
-        // The body goes in first so the liquid blends over it, then the shell over both.
+        poseStack.translate(0.5, -LAYERS_BELOW, 0.5);
+        VertexConsumer water = buffers.getBuffer(ClientRenderTypes.liquid(WATER_TEXTURE));
+        mesh.render("Water", poseStack, water, light, overlay, 1.0F, 1.0F, 1.0F, 0.85F);
+        poseStack.popPose();
         renderCorpse(vat, partialTick, poseStack, buffers, light, overlay);
         poseStack.pushPose();
         poseStack.translate(0.5, -LAYERS_BELOW, 0.5);
-        ObjMesh mesh = ObjMesh.get(MODEL);
-        // The mesh's winding is not reliable, so both passes run without backface culling, and the liquid
-        // leaves the depth buffer alone so the body being infused can be seen through it.
-        VertexConsumer water = buffers.getBuffer(ClientRenderTypes.liquid(WATER_TEXTURE));
-        mesh.render("Water", poseStack, water, light, overlay, 1.0F, 1.0F, 1.0F, 0.85F);
+        // The mesh's winding is not reliable, so both passes run without backface culling.
         VertexConsumer shell = buffers.getBuffer(ClientRenderTypes.shell(SHELL_TEXTURE));
         mesh.renderAllExcept(WATER_GROUP, poseStack, shell, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
-        poseStack.popPose();
         poseStack.popPose();
     }
 
@@ -93,7 +99,7 @@ public class RenderVat implements BlockEntityRenderer<TileVat> {
         float ticks = Minecraft.getInstance().player == null ? 0.0F : Minecraft.getInstance().player.tickCount + partialTick;
         float bob = 0.1F * Mth.cos(ticks * 0.0174F);
         poseStack.pushPose();
-        poseStack.translate(0.5, -1.6 - bob, 0.5);
+        poseStack.translate(0.5, -0.45 - bob, 0.5);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
         poseStack.scale(CORPSE_SCALE, CORPSE_SCALE, CORPSE_SCALE);
