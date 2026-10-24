@@ -201,9 +201,15 @@ python tools/rcon.py stop        # run-server/server.properties 里 RCON 密码�
 | 17 | 把死尸雕像放进缸里看不见雕像，但要素照抽、照常自我注魔 | `level.sendBlockUpdated(pos, 同状态, 同状态, …)` **不带 BE 数据**：`ServerLevel` 只把坐标塞进区块的方块广播队列，客户端 `mode` 一直停在区块加载时的 0，渲染器根本没进画尸体的分支（服务端一切正常） | `TileVat.sync()` 直接给跟踪该区块的玩家发 `ClientboundBlockEntityDataPacket` |
 | 18 | 修好同步后雕像只有一条胳膊一条腿 | 皮肤是 64×32 布局，补画布到 64×64 时左臂/左腿槽位是空的，现代模型采样到透明 | 把右臂(40,16,56,32)/右腿(0,16,16,32) 水平镜像写进左臂(32,48)/左腿(16,48) 槽位 |
 | 19 | 雕像小到看不见（0.15 格，两三个像素），且被水面盖住 | 上游把 `0.1` 传给 1.7/1.12 模型（顶点仍是 1/16 格），现代 `ModelPart` 已除以 16，同一个数字只剩十分之一格；另外尸体画在水之前，被 85% 不透明的水面盖住 | 缩放改 1.2（填满缸内两格水柱）；绘制顺序改为水→尸体→外壳 |
+| 20 | 同一类「画面冻住」遍布另外 10 台机器：灵魂罐里的生物不出现、重组器的闪电环与光柱不亮、传送门漩涡永远黄、要素/灵气发电机不发光、灵化水晶的吸管不画、换质增幅器与漩涡稳定器不动作 | 第 17 条那个无效写法是**抄来的模板**，`TileBloodInfuser`、`TileEssentiaDynamo`、`TileEtherealShard`、`TileJarSoul`、`TilePortal`、`TileRecombinator`、`TileSlot`、`TileTransductionAmplifier`、`TileVisDynamo`、`TileVortex`、`TileVortexStabilizer` 全都一样：`getUpdateTag` 写得好好的，就是没人发 | 抽成 `TileSync.toWatchers(be)`（发给 `chunkMap.getPlayers`），11 处全部改调它；`TileSlot` 另有一条 `setBlock` 通路，但只有 `FILLED` 真的翻转时才带数据，所以也补发一次 |
 
 ## 三、踩过的坑（写下来省下一个人一天）
 
+- **方块实体同步只有一条路**：`level.sendBlockUpdated(pos, 同一个状态, 同一个状态, UPDATE_CLIENTS)` **不发任何
+  BE 数据**（`ServerLevel` 只是把坐标塞进区块的方块广播队列，而那条广播只在状态真的变了时才带 tag）。要同步就
+  调 `TileSync.toWatchers(be)`。反过来，若状态确实变了（`setBlock`），广播会顺带把 tag 发出去，别再重复发。
+- **`getUpdateTag` 现在会被频繁调用**：以前只在区块广播/存档时跑，改完后每次同步都跑一遍。写 tag 的代码不能
+  解引用可能为 null 的字段，否则会在服务端 tick 里炸（`probes/client/37_sync_sweep.java` 逐个放置并触发一遍）。
 - **伪玩家（FakePlayer）的研究每开一次服务器就没了**：它挂在能力上、不落盘。所有需要研究门槛的探针都要在
   **同一次会话**里先授予（见 06 的头部那段）。
 - **句柄方向**：灵魂罐只从**上表面**出料（`isConnectable(face) == face == UP`），管道只**服务**不主动推。
