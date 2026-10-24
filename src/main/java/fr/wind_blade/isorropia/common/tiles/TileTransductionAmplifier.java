@@ -223,10 +223,7 @@ public class TileTransductionAmplifier extends BlockEntity {
     /** Pushes the on/off and ramp state to clients so the renderer can light up and extend the pistons. */
     private void syncToClients() {
         setChanged();
-        if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(),
-                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
-        }
+        TileSync.toWatchers(this);
     }
 
     //? if forge {

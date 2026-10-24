@@ -51,9 +51,8 @@ public class TilePortal extends BlockEntity {
         this.destination = destination;
         this.arrival = arrival.immutable();
         setChanged();
-        if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-        }
+        // The swirl's colour is read off the destination, so the client has to hear about the link at once.
+        TileSync.toWatchers(this);
     }
 
     /** Records which of a plane's four sides this portal stands on, and the plane it belongs to. */

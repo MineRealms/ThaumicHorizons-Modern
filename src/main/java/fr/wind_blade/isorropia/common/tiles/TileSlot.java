@@ -263,7 +263,8 @@ public class TileSlot extends BlockEntity {
         BlockState updated = getBlockState().setValue(
                 fr.wind_blade.isorropia.common.blocks.BlockSlot.FILLED, this.hasKeystone);
         this.level.setBlock(this.worldPosition, updated, Block.UPDATE_CLIENTS);
-        this.level.sendBlockUpdated(this.worldPosition, updated, updated, Block.UPDATE_CLIENTS);
+        // The state change above carries the tag only when FILLED actually flips, so send it regardless.
+        TileSync.toWatchers(this);
     }
 
     //? if forge {

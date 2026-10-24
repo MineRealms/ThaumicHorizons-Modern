@@ -34,10 +34,7 @@ public class TileJarSoul extends BlockEntity {
         this.entityData = data;
         this.displayed = null;
         setChanged();
-        if (level != null) {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(),
-                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
-        }
+        TileSync.toWatchers(this);
     }
 
     /** The creature to draw in the jar, which only the client asks for. */

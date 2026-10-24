@@ -176,10 +176,7 @@ public class TileVortexStabilizer extends BlockEntity {
     /** Pushes the power state and beam landing point to clients so the beam can be drawn in the world. */
     private void syncToClients() {
         setChanged();
-        if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(),
-                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
-        }
+        TileSync.toWatchers(this);
     }
 
     //? if forge {

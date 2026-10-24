@@ -104,9 +104,7 @@ public class TileVisDynamo extends BlockEntity implements VisSource, DynamoVisua
         if (supplying != shownSupplying || channels != shownChannels) {
             shownSupplying = supplying;
             shownChannels = channels;
-            if (level != null) {
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-            }
+            TileSync.toWatchers(this);
         }
     }
 

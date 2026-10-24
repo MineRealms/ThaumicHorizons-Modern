@@ -431,9 +431,7 @@ public class TileEtherealShard extends BlockEntity implements AuraNodeView {
 
     private void syncToClients() {
         setChanged();
-        if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-        }
+        TileSync.toWatchers(this);
     }
 
     //? if forge {

@@ -179,9 +179,7 @@ public class TileEssentiaDynamo extends BlockEntity implements VisSource, Essent
             shownPrimed = primed;
             shownSupplying = supplying;
             shownEssentia = essentia;
-            if (level != null) {
-                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-            }
+            TileSync.toWatchers(this);
         }
     }
 

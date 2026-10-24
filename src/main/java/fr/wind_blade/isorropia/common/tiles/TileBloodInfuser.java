@@ -525,10 +525,7 @@ public class TileBloodInfuser extends BlockEntity implements EssentiaTransport, 
     // ---------------------------------------------------------------- sync + persistence
 
     private void sync() {
-        if (this.level != null && !this.level.isClientSide) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(),
-                    Block.UPDATE_CLIENTS);
-        }
+        TileSync.toWatchers(this);
     }
 
     /**
