@@ -5,7 +5,7 @@
 （精华、注魔、扫描、多方块、法杖交互）以它的前身 **Thaumic Horizons（1.7.10，TC4）** 为准。
 
 ```text
-当前版本：1.0.2-alpha        mod id：isorropia
+当前版本：1.0.3-alpha        mod id：isorropia
 1.20.1：Forge 47.x（[47,48)）/ Java 17   ·   1.21.1：NeoForge / Java 21
 必需依赖：TC4R 0.1.0-20740（运行版本 4.2.3.5-*-port.0.1.0-20740）、Curios
 ```
