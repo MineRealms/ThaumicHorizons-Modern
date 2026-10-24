@@ -26,9 +26,8 @@ for (var entry : blocks.entrySet()) {
         if (be == null) {
             sb.append(entry.getKey()).append("=no-be ");
         } else {
-            var tag = be.getUpdateTag();
             fr.wind_blade.isorropia.common.tiles.TileSync.toWatchers(be);
-            sb.append(entry.getKey()).append("=ok(").append(tag.size()).append(") ");
+            sb.append(entry.getKey()).append("=ok ");
         }
         level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
     } catch (Throwable t) {
