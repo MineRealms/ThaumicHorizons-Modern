@@ -1,7 +1,7 @@
 package fr.wind_blade.isorropia.common.curative;
 
+import dev.tc4port.thaumcraft.api.ThaumcraftTags;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
-import dev.tc4port.thaumcraft.api.entity.TaintedMob;
 import fr.wind_blade.isorropia.common.IsorropiaAspects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -21,7 +21,7 @@ public final class CurativeEffects {
 
     public static final List<Effect> EFFECTS = List.of(
             // Upstream gave mortuus the same undead-only condition as exanimis; kept as is.
-            new Effect(IsorropiaAspects.IGNIS, entity -> entity instanceof TaintedMob,
+            new Effect(IsorropiaAspects.IGNIS, entity -> entity.getType().is(ThaumcraftTags.TAINTED_ENTITIES),
                     entity -> entity.hurt(entity.damageSources().magic(), 1.0F), 4),
             new Effect(IsorropiaAspects.VICTUS, entity -> !entity.isInvertedHealAndHarm() && hurt(entity), entity -> entity.heal(1.0F), 50),
             new Effect(IsorropiaAspects.FAMES, entity -> entity instanceof Player player && player.getFoodData().needsFood(),

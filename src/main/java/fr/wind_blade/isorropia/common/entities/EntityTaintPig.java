@@ -1,7 +1,7 @@
 package fr.wind_blade.isorropia.common.entities;
 
+import dev.tc4port.thaumcraft.api.ThaumcraftTags;
 import dev.tc4port.thaumcraft.api.damage.ThaumcraftDamageTypes;
-import dev.tc4port.thaumcraft.api.entity.TaintedMob;
 import fr.wind_blade.isorropia.common.entities.ai.EatTaintGoal;
 import fr.wind_blade.isorropia.common.entities.ai.TaintFoodIngredient;
 import net.minecraft.resources.ResourceLocation;
@@ -94,7 +94,7 @@ public class EntityTaintPig extends Pig {
 
     @Override
     public boolean isInvulnerableTo(DamageSource source) {
-        return source.getEntity() instanceof TaintedMob || source.is(ThaumcraftDamageTypes.FLUX_TAINT) || super.isInvulnerableTo(source);
+        return source.getEntity() != null && source.getEntity().getType().is(ThaumcraftTags.TAINTED_ENTITIES) || source.is(ThaumcraftDamageTypes.FLUX_TAINT) || super.isInvulnerableTo(source);
     }
 
     @Override

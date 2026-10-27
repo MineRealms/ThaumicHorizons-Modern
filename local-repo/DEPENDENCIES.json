@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-forge:0.1.0-20748",
-  "runtime_version": "4.2.3.5-1.20.1-port.0.1.0-20748",
-  "source": "User-supplied local TC4R build (1.20.1-forge-20748-dev.zip, main jar seeded from ThaumicAdditions-Port); not redistributed",
+  "coordinate": "dev.tc4port:thaumcraft-forge:0.1.0-20753",
+  "runtime_version": "4.2.3.5-1.20.1-port.0.1.0-20753",
+  "source": "User-supplied local TC4R build (1.20.1-forge-20753-dev.zip, main jar seeded from ThaumicAdditions-Port); not redistributed",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20748/thaumcraft-forge-0.1.0-20748-api.jar",
-      "sha256": "7891ad8523135c2b453a1c656cdf3b725da4675362baac529339be44c6dfb150"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753-api.jar",
+      "sha256": "d9393ef6d03d5a7f1db3c357ba1c3d0caa3ccc883253f92773203e4552146a4a"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20748/thaumcraft-forge-0.1.0-20748-sources.jar",
-      "sha256": "c243887a2dccb30fb0d691bc5ad30aad3e403dd9d826dd4e61519694b442ae14"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753-sources.jar",
+      "sha256": "5887240f9d257b4b5aded090e1200c160dbef4e3a9bf171067247f5b0d3570ae"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20748/thaumcraft-forge-0.1.0-20748.jar",
-      "sha256": "f682d9c0703c8ca3ef308a7bc1a9ab38c434eb58d153dee6a0156c2816ed4929"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753.jar",
+      "sha256": "bde6cd53dc44c31000626fc9c516e958cd2dcd73b56ff57791617ef95420dbac"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20748/thaumcraft-forge-0.1.0-20748.pom",
-      "sha256": "6e8873acde624711cb75a005b6787f2e5f87509934af9a5134c39fd6ba90c1d0"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753.pom",
+      "sha256": "dd4e019d2144fa83d676535fc2a0cd9fb1ddfabc736127ceb7aca8f36b75594b"
     }
   ]
 }

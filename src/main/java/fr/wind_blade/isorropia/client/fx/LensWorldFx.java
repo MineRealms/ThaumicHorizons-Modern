@@ -6,7 +6,7 @@ import com.mojang.math.Axis;
 import dev.tc4port.thaumcraft.api.aspect.AspectQueryApi;
 import dev.tc4port.thaumcraft.api.client.ThaumcraftClientRenderApi;
 import dev.tc4port.thaumcraft.api.client.WorldRenderTransforms;
-import dev.tc4port.thaumcraft.api.entity.EldritchMob;
+import dev.tc4port.thaumcraft.api.ThaumcraftTags;
 import fr.wind_blade.isorropia.client.model.RenderColors;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.client.LensClientState;
@@ -138,7 +138,7 @@ public final class LensWorldFx {
             double y = Mth.lerp(partialTick, creature.yOld, creature.getY());
             double z = Mth.lerp(partialTick, creature.zOld, creature.getZ());
             double centreY = y + creature.getBbHeight() / 2.0;
-            if (creature instanceof EldritchMob) {
+            if (creature.getType().is(ThaumcraftTags.ELDRITCH_ENTITIES)) {
                 vortex(poseStack, buffers, cameraPos, x, centreY, z, size * 0.8F, alpha, ELDRITCH_VORTEX,
                         creature.tickCount % 360, -(creature.tickCount % 360) * 2);
             } else if (creature.getMobType() == MobType.UNDEAD) {

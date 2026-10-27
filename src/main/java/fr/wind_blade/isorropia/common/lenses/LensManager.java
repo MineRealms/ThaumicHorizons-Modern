@@ -1,6 +1,6 @@
 package fr.wind_blade.isorropia.common.lenses;
 
-import dev.tc4port.thaumcraft.api.item.GogglesOverlayGear;
+import dev.tc4port.thaumcraft.api.item.PlayerAbilityGear;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.common.items.ItemsIS;
 import net.minecraft.resources.ResourceLocation;
@@ -44,7 +44,7 @@ public final class LensManager {
             return true;
         }
         // Any other gear Thaumcraft treats as revealing is a valid mount too.
-        return stack.getItem() instanceof GogglesOverlayGear;
+        return stack.getItem() instanceof PlayerAbilityGear;
     }
 
     /**
