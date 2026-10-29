@@ -42,7 +42,7 @@ public class RenderDynamo<T extends BlockEntity & DynamoVisual> implements Block
     /** The lightning strip's frames, laid side by side; TH stepped them every 40 ms. */
     private static final int LIGHTNING_FRAMES = 16;
     private static final float LIGHTNING_HALF_SIZE = 0.2F;
-    private static final int LIGHTNING_ALPHA = Math.round(0.9F * 255.0F);
+    private static final int LIGHTNING_ALPHA = 255;
     private static final float RING_SCALE = 0.36F;
     private static final float RING_HEIGHT = 0.2F;
 
@@ -99,7 +99,7 @@ public class RenderDynamo<T extends BlockEntity & DynamoVisual> implements Block
         poseStack.translate(0.5F, 0.5F, 0.5F);
         poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
         PoseStack.Pose pose = poseStack.last();
-        VertexConsumer quad = buffers.getBuffer(ThaumcraftClientRenderApi.legacyLinearAdditiveBillboard(LIGHTNING));
+        VertexConsumer quad = buffers.getBuffer(RenderType.entityTranslucent(LIGHTNING));
         float s = LIGHTNING_HALF_SIZE;
         vertex(quad, pose, -s, -s, u0, 1.0F, red, green, blue);
         vertex(quad, pose, s, -s, u1, 1.0F, red, green, blue);

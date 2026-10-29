@@ -68,8 +68,10 @@ public class RenderNodeMonitor implements BlockEntityRenderer<TileNodeMonitor> {
         ObjMesh.get(SCANNER).renderAllExcept(List.of(), poseStack,
                 buffers.getBuffer(RenderType.entityCutoutNoCull(BODY)), light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
         ResourceLocation screen = monitor.blink() ? SCREEN_ALERT : SCREEN_IDLE;
+        // The screen is a display, not a lit surface: it has to read in an unlit corner of a base.
         ObjMesh.get(SCREEN).renderAllExcept(List.of(), poseStack,
-                buffers.getBuffer(RenderType.entityTranslucent(screen)), light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
+                buffers.getBuffer(RenderType.entityTranslucent(screen)),
+                net.minecraft.client.renderer.LightTexture.FULL_BRIGHT, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
     }
 }

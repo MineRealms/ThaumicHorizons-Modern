@@ -54,13 +54,17 @@ public class RenderTransductionAmplifier implements BlockEntityRenderer<TileTran
         float ticks = amplifier.animationTicks() + partialTick;
 
         poseStack.pushPose();
-        poseStack.translate(0.5F, 1.0F, 0.5F);
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-        orient(facing, poseStack);
+        // TH anchored the model on the face it was placed against and let its stem (+Z in the mesh) run towards the
+        // node, so the body always sits in the half of the block away from the node. The earlier port rotated the
+        // whole model upright first and then tried to aim it, which put the body in the top of the block and turned
+        // every horizontal facing a quarter turn the wrong way.
+        anchor(facing, poseStack);
 
         mesh.render("lock", poseStack, buffers.getBuffer(RenderType.entityCutoutNoCull(CONVERTER)), light, overlay,
                 1.0F, 1.0F, 1.0F, 1.0F);
-        mesh.render("lock", poseStack, buffers.getBuffer(RenderType.entityTranslucent(CONVERTER_OVERLAY)),
+        // The overlay is cutout, not translucent: only its opaque pixels are meant to be seen, and the glow comes
+        // from the pulse colour rather than from the world light.
+        mesh.render("lock", poseStack, buffers.getBuffer(RenderType.entityCutoutNoCull(CONVERTER_OVERLAY)),
                 pulseLight(strength, Mth.sin(ticks / 3.0F) * 0.1F + 0.9F), overlay, red, green, blue, 1.0F);
         // Four pistons, each pushed out from the core by how hard the node is being amplified.
         for (int arm = 0; arm < 4; arm++) {
@@ -70,7 +74,7 @@ public class RenderTransductionAmplifier implements BlockEntityRenderer<TileTran
             poseStack.translate(0.0F, 0.0F, ramp);
             mesh.render("piston", poseStack, buffers.getBuffer(RenderType.entityCutoutNoCull(CONVERTER)), light,
                     overlay, 1.0F, 1.0F, 1.0F, 1.0F);
-            mesh.render("piston", poseStack, buffers.getBuffer(RenderType.entityTranslucent(CONVERTER_OVERLAY)),
+            mesh.render("piston", poseStack, buffers.getBuffer(RenderType.entityCutoutNoCull(CONVERTER_OVERLAY)),
                     pulseLight(strength, Mth.sin((ticks + arm * 5.0F) / 3.0F) * 0.1F + 0.9F),
                     overlay, red, green, blue, 1.0F);
             poseStack.popPose();
@@ -84,15 +88,34 @@ public class RenderTransductionAmplifier implements BlockEntityRenderer<TileTran
         return value << 16 | value;
     }
 
-    /** Rotate the model so its stem points at the node the amplifier is attached to. */
-    private static void orient(Direction facing, PoseStack poseStack) {
+    /**
+     * Puts the mesh's origin on the block face the amplifier was placed against and turns its stem (+Z) towards
+     * {@code facing}, the side the node is on. TH's 1.7.10 renderer did exactly this per metadata: the body sits
+     * against the wall and the four pistons reach out towards the node.
+     */
+    private static void anchor(Direction facing, PoseStack poseStack) {
         switch (facing) {
-            case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
-            case NORTH -> poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
-            case SOUTH -> poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-            case WEST -> poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
-            case EAST -> poseStack.mulPose(Axis.ZP.rotationDegrees(-90.0F));
-            default -> { /* UP: the model already points up */ }
+            case SOUTH -> poseStack.translate(0.5F, 0.5F, 0.0F);
+            case NORTH -> {
+                poseStack.translate(0.5F, 0.5F, 1.0F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+            }
+            case EAST -> {
+                poseStack.translate(0.0F, 0.5F, 0.5F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
+            }
+            case WEST -> {
+                poseStack.translate(1.0F, 0.5F, 0.5F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(270.0F));
+            }
+            case DOWN -> {
+                poseStack.translate(0.5F, 1.0F, 0.5F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            }
+            case UP -> {
+                poseStack.translate(0.5F, 0.0F, 0.5F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(270.0F));
+            }
         }
     }
 }

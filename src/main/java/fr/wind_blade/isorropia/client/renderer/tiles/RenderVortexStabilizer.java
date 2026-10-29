@@ -4,10 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.tc4port.thaumcraft.api.client.ThaumcraftClientRenderApi;
+import fr.wind_blade.isorropia.client.model.AttenuatorModel;
 import fr.wind_blade.isorropia.client.model.RenderColors;
-import fr.wind_blade.isorropia.client.model.ObjMesh;
 import fr.wind_blade.isorropia.common.blocks.BlockVortexStabilizer;
 import fr.wind_blade.isorropia.common.tiles.TileVortexStabilizer;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -21,17 +22,16 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Thaumic Horizons' vortex attenuator. The emitter head reuses Thaumcraft's stabilizer model; while a redstone signal
- * feeds it, a cerulean ribbon of light runs along its facing to whatever the beam lands on, as TH's {@code beamBore}
- * drew with colour {@code 33023} (a deep sky blue).
+ * Thaumic Horizons' vortex attenuator: a base plate, a rod and three rings, drawn from TH's own model. While a
+ * redstone signal feeds it, a cerulean ribbon of light runs along its facing to whatever the beam lands on, as TH's
+ * {@code beamBore} drew with colour {@code 33023} (a deep sky blue).
+ *
+ * <p>The port used to draw this with Thaumcraft's node-stabilizer mesh, which is why it read as a second transducer;
+ * the base plate and the three rings are what make the attenuator recognisable.</p>
  */
 public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexStabilizer> {
-    private static final ResourceLocation MODEL = ResourceLocation.fromNamespaceAndPath("thaumcraft",
-            "textures/models/node_stabilizer.obj");
-    private static final ResourceLocation BASE = ResourceLocation.fromNamespaceAndPath("thaumcraft",
-            "textures/models/node_stabilizer.png");
-    private static final ResourceLocation OVERLAY = ResourceLocation.fromNamespaceAndPath("thaumcraft",
-            "textures/models/node_stabilizer_over.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("isorropia",
+            "textures/entity/machines/attenuator.png");
     private static final ResourceLocation BEAM = ResourceLocation.fromNamespaceAndPath("thaumcraft",
             "textures/misc/wispy.png");
     /** TH's beamBore colour: a cerulean blue. */
@@ -39,9 +39,10 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
     private static final float BEAM_HALF_WIDTH = 0.07F;
     private static final int STEPS_PER_BLOCK = 8;
 
-    private final ObjMesh mesh = ObjMesh.get(MODEL);
+    private final ModelPart body;
 
     public RenderVortexStabilizer(BlockEntityRendererProvider.Context context) {
+        this.body = AttenuatorModel.body(context.bakeLayer(AttenuatorModel.LAYER));
     }
 
     @Override
@@ -54,18 +55,11 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
         float green = (colour >> 8 & 255) / 255.0F;
         float blue = (colour & 255) / 255.0F;
 
-        // The emitter head, using Thaumcraft's stabilizer transform so it reads as a machine in the block.
+        // The plate goes against the block face the attenuator was placed on and the rod points the way it fires.
         poseStack.pushPose();
-        // Thaumcraft's own transform, byte for byte: the lock sits in the lower half of the block and the gold
-        // collar faces up. Anchoring it at the block top and spinning +90 instead left the head a half turn over
-        // and a whole block high, which is what read as a ninety degree error in world.
-        poseStack.translate(0.5F, 0.0F, 0.5F);
-        poseStack.mulPose(Axis.XN.rotationDegrees(90.0F));
-        orient(facing, poseStack);
-        VertexConsumer base = buffers.getBuffer(RenderType.entityCutoutNoCull(BASE));
-        mesh.render("lock", poseStack, base, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
-        VertexConsumer glow = buffers.getBuffer(RenderType.entityTranslucent(OVERLAY));
-        mesh.render("lock", poseStack, glow, LightTexture.FULL_BRIGHT, overlay, red, green, blue, 1.0F);
+        anchor(facing, poseStack);
+        VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        body.render(poseStack, consumer, active ? LightTexture.FULL_BRIGHT : light, overlay);
         poseStack.popPose();
 
         if (active && stabilizer.hasBeam() && stabilizer.beamEnd() != null) {
@@ -120,18 +114,33 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
     }
 
     /**
-     * Rotate the head so its mounting plate lies against the face it was placed on and the stem points at the node,
-     * the way the transduction amplifier is oriented. Without this the head always stood upright, so one hung on a
-     * wall or ceiling read as a quarter turn out of place.
+     * Puts the plate on the face opposite the beam and turns the rod along {@code facing}. The model stands on its
+     * base, so an attenuator on the floor needs no rotation and one on a wall is turned a quarter turn about the
+     * axis that keeps its plate against that wall.
      */
-    private static void orient(Direction facing, PoseStack poseStack) {
+    private static void anchor(Direction facing, PoseStack poseStack) {
         switch (facing) {
-            case DOWN -> poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
-            case NORTH -> poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F));
-            case SOUTH -> poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-            case WEST -> poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
-            case EAST -> poseStack.mulPose(Axis.ZP.rotationDegrees(-90.0F));
-            default -> { /* UP: the model already points up */ }
+            case UP -> poseStack.translate(0.5F, 0.0F, 0.5F);
+            case DOWN -> {
+                poseStack.translate(0.5F, 1.0F, 0.5F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
+            }
+            case SOUTH -> {
+                poseStack.translate(0.5F, 0.5F, 0.0F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            }
+            case NORTH -> {
+                poseStack.translate(0.5F, 0.5F, 1.0F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(270.0F));
+            }
+            case EAST -> {
+                poseStack.translate(0.0F, 0.5F, 0.5F);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(270.0F));
+            }
+            case WEST -> {
+                poseStack.translate(1.0F, 0.5F, 0.5F);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+            }
         }
     }
 }

@@ -88,6 +88,8 @@ public final class ClientSetup {
                 fr.wind_blade.isorropia.client.model.EtherealShardModel::createBodyLayer);
         event.registerLayerDefinition(fr.wind_blade.isorropia.client.model.DynamoBaseModel.LAYER,
                 fr.wind_blade.isorropia.client.model.DynamoBaseModel::createBodyLayer);
+        event.registerLayerDefinition(fr.wind_blade.isorropia.client.model.AttenuatorModel.LAYER,
+                fr.wind_blade.isorropia.client.model.AttenuatorModel::createBodyLayer);
         event.registerLayerDefinition(fr.wind_blade.isorropia.client.model.ModelSomaticBrain.LAYER,
                 fr.wind_blade.isorropia.client.model.ModelSomaticBrain::createBodyLayer);
         event.registerLayerDefinition(fr.wind_blade.isorropia.client.model.RecombinatorModel.LAYER,
