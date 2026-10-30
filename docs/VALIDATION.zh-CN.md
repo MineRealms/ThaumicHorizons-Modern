@@ -131,6 +131,13 @@ Windows 上父子 Python 进程统一使用 UTF-8：回归脚本为子进程设�
 - `build/shard-stability-final.log`：97/98 与碎片功能组共 11 步通过，101–103 再连续重复两轮均通过。
 - `build/shard-acceptance-full-sweep.log`：修复后完整 **82 步全部通过，退出码 0**；62 步有行为断言，20 步仅作无运行错误的冒烟检查。客户端日志 ERROR/FATAL 为 0，但仍有既有的 cat 物品缺贴图与开发桥兼容警告。本轮未重跑专用服务器探针，不代表所有玩法/组合或旧版逐像素外观均已覆盖。
 - 101/102 的连续回归隔离：先释放双端持物状态、关闭旧容器、重设生存飞行标志与快捷栏，再在客户端预置同一空杖副本；点击仍走真实按键与网络路径，不直接向法杖注入测试结果。
+- **装罐回归（2026-10-30，探针 44–46，1.20.1 与 1.21.1 各跑一遍）**：3×4×3 玻璃 + 木台阶围住充能碎片后，`fits=true`、
+  `tryForm=CONSUME`，方块变 `thaumcraft:node_jar`，罐内 `aer=5`（base 也是 5）、`instanceId` 已生成、外壳被吃干净、
+  附近掉落 **0** 件（不会既进罐又掉精华）；再用杖点罐，`releaseNode` 放出 `thaumcraft:aura_node`，`aer=5/5`、类型
+  `normal`、可继续抽取。空白碎片同样能装罐，罐里无 vis 但带 id，放下不会重新生成一个满节点。
+  与旧版（TC4R 20721）的差别：那版的 `NodeJarBlock.fits` 只认 `AuraNodeBlockEntity`，碎片根本进不了罐；20753 改成
+  `NodeApi.view` + `#thaumcraft:node_jar_hosts` 标签，碎片实现 `AuraNodeView` 且已在标签里，所以现在能装。
+  仍未保留的是**容量**：罐里 base 取的是存量 vis，喂进去的容量（精华）在装罐时蒸发，破坏反而更划算。
 - 111–113：服务端/客户端均 `draining=true`、客户端正在使用法杖；捕获到晶体 24、符标 4、光带 128 个顶点。
 - 空白/风/火/水/混合晶体的实际顶点 RGB 分别为 `FFFFFF`、`FFFF95`、`FF6E09`、`4BF6FF`、`CCC7BC`；不是只验证计算函数，而是捕获 BER 实际输出。
 - 截图保存在本地 `run-client/screenshots/shard_verified_beam.png`、`shard_verified_colours.png`；不作为旧版本逐像素等价证明。
