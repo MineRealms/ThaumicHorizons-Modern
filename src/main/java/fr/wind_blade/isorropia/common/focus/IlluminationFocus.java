@@ -69,7 +69,7 @@ public final class IlluminationFocus {
                 || request.use().target() != dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind.BLOCK) {
             return next.proceed(request);
         }
-        var aimed = request.aim(RANGE);
+        var aimed = request.aim(ACTION);
         if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
                 || !available(aimed.use().player().level(), hit)) return FocusUseResult.PASS;
         return next.proceed(aimed.configuredCost().map(aimed::withCost).orElseGet(aimed::withoutCost));

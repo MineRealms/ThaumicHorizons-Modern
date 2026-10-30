@@ -8,10 +8,7 @@ import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
-import dev.tc4port.thaumcraft.common.ArcaneBoreMiningResults;
-import dev.tc4port.thaumcraft.recipe.InfernalOutput;
-import dev.tc4port.thaumcraft.recipe.InfernalSmeltingRecipe;
-import dev.tc4port.thaumcraft.registry.TCRecipes;
+import dev.tc4port.thaumcraft.api.item.SpecialMiningApi;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.common.items.ItemFocusLiquefaction;
 import net.minecraft.core.BlockPos;
@@ -131,7 +128,15 @@ public final class LiquefactionFocus {
         FocusApi.requireActionCosts(ItemFocusLiquefaction.ID, Set.of(CRITTER));
         FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusLiquefaction.ID, FocusCompat.Aim.AIR,
                 FocusCompat.Mode.CHANNEL, true, ResearchRequirement.required(RESEARCH), RANGE, 0),
-                LiquefactionFocus::handle);
+                new dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler() {
+                    @Override public HitResult target(dev.tc4port.thaumcraft.api.focus.behavior.FocusUseContext use,
+                            dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages.Aim query) {
+                        return ordinaryTarget(query);
+                    }
+                    @Override public FocusActionResult handle(FocusActionContext context, VisAction action) {
+                        return LiquefactionFocus.handle(context, action);
+                    }
+                }, LiquefactionFocus::authorize);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
@@ -145,10 +150,35 @@ public final class LiquefactionFocus {
         };
     }
 
+    private static dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization authorize(
+            dev.tc4port.thaumcraft.api.focus.action.FocusAuthorizationContext context) {
+        var allowed = dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.allow();
+        if (context.interaction().gesture() != dev.tc4port.thaumcraft.api.focus.action.FocusGesture.HOLD
+                || !(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return allowed;
+        var level = context.player().serverLevel();
+        BlockPos pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.deny();
+        var state = level.getBlockState(pos);
+        Progress last = PROGRESS.get(context.player().getUUID());
+        Melt melt = melt(state);
+        float hardness = melt == Melt.LAVA ? Melt.LAVA.hardness()
+                : (melt != Melt.NONE || isFlammable(level, pos, state)) ? 0.25F : 2.0F;
+        float measure = last != null && last.block() == pos.asLong() ? last.measure() : 0;
+        if (measure + context.parameter("break_speed") < hardness) return allowed;
+        List<BlockPos> positions = new ArrayList<>();
+        positions.add(pos);
+        if (context.parameter("enlarge") > 0) positions.addAll(affectableNeighbours(level, pos));
+        return FocusBlockAuthorization.check(context.player(), positions, pos, context.parameter("enlarge") > 0 ? 1 : 0);
+    }
+
     /** One tick of the held beam. Simulation must not change anything, so all effects wait for EXECUTE. */
     private static FocusActionResult tick(FocusActionContext context, VisAction action) {
         HitResult hit = context.authoritativeHit();
         if (hit instanceof EntityHitResult entityHit) {
+            var entity = entityHit.getEntity();
+            if (entity.level() != context.player().level() || !entity.isAlive() || entity.isRemoved()
+                    || context.player().level().getEntity(entity.getId()) != entity) return FocusActionResult.PASS;
             if (entityHit.getEntity() instanceof LivingEntity target && target.isAlive()) {
                 return burn(context, action, target);
             }
@@ -157,32 +187,30 @@ public final class LiquefactionFocus {
             }
             return FocusActionResult.PASS;
         }
-        // The wand's own ray skips dropped items, which are not pickable; one in the beam is still smelted.
-        ItemEntity drop = pointedDrop(context);
-        if (drop != null) {
-            return smeltDrop(context, action, drop);
-        }
-        if (hit instanceof BlockHitResult blockHit) {
+        if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK) {
             return tickBlock(context, action, blockHit.getBlockPos());
         }
         return FocusActionResult.PASS;
     }
 
     /** The nearest dropped item the beam points at, which the wand's pickable-only ray cannot see. */
-    private static ItemEntity pointedDrop(FocusActionContext context) {
-        ServerPlayer player = context.player();
+    private static HitResult ordinaryTarget(dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages.Aim query) {
+        var player = query.player();
         Vec3 start = player.getEyePosition();
-        Vec3 reach = player.getViewVector(1.0F).normalize().scale(RANGE);
+        Vec3 reach = player.getViewVector(1.0F).normalize().scale(query.range());
         Vec3 end = start.add(reach);
         HitResult block = player.level().clip(new ClipContext(start, end, ClipContext.Block.OUTLINE,
                 ClipContext.Fluid.NONE, player));
-        if (block.getType() != HitResult.Type.MISS) {
-            end = block.getLocation();
-        }
-        EntityHitResult found = ProjectileUtil.getEntityHitResult(player, start, end,
-                player.getBoundingBox().expandTowards(reach).inflate(1.0D), candidate -> candidate instanceof ItemEntity,
-                (double) RANGE * RANGE);
-        return found != null && found.getEntity() instanceof ItemEntity item ? item : null;
+        if (block.getType() != HitResult.Type.MISS) end = block.getLocation();
+        var search = player.getBoundingBox().expandTowards(reach).inflate(1.0D);
+        EntityHitResult found = ProjectileUtil.getEntityHitResult(player, start, end, search,
+                candidate -> !candidate.isSpectator() && candidate.isPickable(), query.range() * query.range());
+        if (found != null) return found;
+        // Preserve the original pickable-entity priority over dropped items.
+        EntityHitResult drop = ProjectileUtil.getEntityHitResult(player, start, end, search,
+                candidate -> candidate instanceof ItemEntity item,
+                query.range() * query.range());
+        return drop == null ? block : drop;
     }
 
     /** The beam hurts a creature only weakly; it is no weapon, merely a very hot draught. */
@@ -224,6 +252,7 @@ public final class LiquefactionFocus {
     private static FocusActionResult tickBlock(FocusActionContext context, VisAction action, BlockPos pos) {
         ServerPlayer player = context.player();
         ServerLevel level = player.serverLevel();
+        if (!level.isLoaded(pos)) return FocusActionResult.PASS;
         BlockState state = level.getBlockState(pos);
         Melt melt = melt(state);
         ItemStack blockStack = new ItemStack(state.getBlock());
@@ -318,7 +347,7 @@ public final class LiquefactionFocus {
     /** Drops an ore's native clusters instead of its plain smelt, and reports whether anything was purified. */
     private static boolean purify(ServerLevel level, BlockPos pos, BlockState state, ItemStack blockStack) {
         boolean purified = false;
-        for (ItemStack cluster : ArcaneBoreMiningResults.replace(blockStack, PURITY_CHANCE, level, state, pos)) {
+        for (ItemStack cluster : SpecialMiningApi.convert(blockStack, PURITY_CHANCE, level, state, pos)) {
             if (cluster.isEmpty() || ItemStack.isSameItemSameTags(cluster, blockStack)) {
                 continue;
             }
@@ -336,29 +365,12 @@ public final class LiquefactionFocus {
         if (nuggets <= 0) {
             return;
         }
-        //? if forge {
-        for (InfernalSmeltingRecipe recipe : level.getRecipeManager().getAllRecipesFor(TCRecipes.INFERNAL_SMELTING.get())) {
-            if (!recipe.matches(new SimpleContainer(blockStack), level)) {
-        //?} else {
-        /*for (net.minecraft.world.item.crafting.RecipeHolder<InfernalSmeltingRecipe> holder
-                : level.getRecipeManager().getAllRecipesFor(TCRecipes.INFERNAL_SMELTING.get())) {
-            InfernalSmeltingRecipe recipe = holder.value();
-            if (!recipe.matches(new net.minecraft.world.item.crafting.SingleRecipeInput(blockStack), level)) {
-        *///?}
-                continue;
+        for (ItemStack result : dev.tc4port.thaumcraft.api.recipe.InfernalSmeltingApi.bonusOutputs(level, blockStack)) {
+            ItemStack stack = result.copy();
+            for (int index = 0; index < nuggets; index++) {
+                if (level.random.nextFloat() < NUGGET_CHANCE) stack.grow(1);
             }
-            for (InfernalOutput output : recipe.outputs()) {
-                if (!output.bonus() || output.result().isEmpty()) {
-                    continue;
-                }
-                ItemStack stack = output.result().copy();
-                for (int index = 0; index < nuggets; index++) {
-                    if (level.random.nextFloat() < NUGGET_CHANCE) {
-                        stack.grow(1);
-                    }
-                }
-                Block.popResource(level, pos, stack);
-            }
+            Block.popResource(level, pos, stack);
         }
     }
 
@@ -372,6 +384,7 @@ public final class LiquefactionFocus {
                         continue;
                     }
                     BlockPos neighbour = pos.offset(x, y, z);
+                    if (!level.isLoaded(neighbour)) continue;
                     BlockState state = level.getBlockState(neighbour);
                     ItemStack stack = new ItemStack(state.getBlock());
                     if (melt(state) != Melt.NONE || !stack.isEmpty() && !smelt(level, stack).isEmpty()

@@ -345,6 +345,8 @@ tasks.register('verifyPublicApiIntegrations', JavaCompile) {
         include '**/common/compat/HeldWandTargets.java', '**/common/compat/AuraNodeBonus.java'
         include '**/common/compat/WandInteractions.java'
         include '**/common/focus/AnimationFocus.java', '**/common/focus/IlluminationFocus.java'
+        include '**/common/focus/DisintegrationFocus.java', '**/common/focus/LiquefactionFocus.java'
+        include '**/common/focus/FocusBlockAuthorization.java'
         include '**/common/blocks/BlockVisDynamo.java', '**/common/blocks/BlockEtherealShard.java'
         include '**/common/blocks/BlockTransductionAmplifier.java', '**/common/tiles/TileTransductionAmplifier.java'
     })

@@ -37,6 +37,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,7 +75,7 @@ public final class AnimationFocus {
         WandPipelineApi.define(Isorropia.id("animation/predict"), WandCastStages.PREDICT, AnimationFocus::predict);
         FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusAnimation.ID, FocusCompat.Aim.BLOCK,
                 FocusCompat.Mode.INSTANT, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
-                AnimationFocus::handle);
+                AnimationFocus::handle, AnimationFocus::authorize);
     }
 
     private static FocusUseResult predict(FocusPredictionContext request,
@@ -83,12 +84,13 @@ public final class AnimationFocus {
                 || request.use().target() != dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind.BLOCK) {
             return next.proceed(request);
         }
-        var aimed = request.aim(RANGE);
+        var aimed = request.aim(ACTION);
         if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
             return FocusUseResult.PASS;
         }
         var level = aimed.use().player().level();
         var pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return FocusUseResult.PASS;
         var state = level.getBlockState(pos);
         if (!animatable(level, pos, state)) return FocusUseResult.PASS;
         return next.proceed(aimed.withCost(primalCost(AnimatedBlockType.of(state).visCost)));
@@ -104,6 +106,7 @@ public final class AnimationFocus {
         ServerPlayer player = context.player();
         ServerLevel level = player.serverLevel();
         BlockPos pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return FocusActionResult.PASS;
         BlockState state = level.getBlockState(pos);
         if (!animatable(level, pos, state)) {
             return FocusActionResult.PASS;
@@ -121,12 +124,16 @@ public final class AnimationFocus {
         return FocusActionResult.SUCCESS;
     }
 
-    /** Calls the block out of the world and sets the golem walking, honouring the block-break event first. */
+    private static dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization authorize(
+            dev.tc4port.thaumcraft.api.focus.action.FocusAuthorizationContext context) {
+        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.allow();
+        return FocusBlockAuthorization.check(context.player(), List.of(hit.getBlockPos()), hit.getBlockPos(), 0);
+    }
+
+    /** Execute the already-authorized block animation. */
     private static void raise(FocusActionContext context, ServerLevel level, ServerPlayer player, BlockPos pos,
             BlockState state) {
-        if (GameplayHooks.fireBlockBreak(level, player.gameMode.getGameModeForPlayer(), player, pos, state).isCanceled()) {
-            return;
-        }
         EntityAnimatedBlock golem = EntitiesIS.ANIMATED_BLOCK.get().create(level);
         if (golem == null) {
             return;

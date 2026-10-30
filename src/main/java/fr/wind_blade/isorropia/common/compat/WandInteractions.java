@@ -42,7 +42,7 @@ public final class WandInteractions {
         WandPipelineApi.aroundAll(Isorropia.id("machines"), WandUseStages.WANDABLE, -200, WandInteractions::machine);
         WandPipelineApi.aroundAll(Isorropia.id("curative_vat"), WandUseStages.BEFORE_FORMATION,
                 -200, WandInteractions::vat);
-        WandPipelineApi.aroundAll(Isorropia.id("portability"), WandUseStages.BEFORE_ENTITY,
+        WandPipelineApi.aroundAll(Isorropia.id("portability"), WandUseStages.ENTITY,
                 -200, WandInteractions::capture);
     }
 
@@ -67,14 +67,6 @@ public final class WandInteractions {
         else return next.proceed(use);
         return result == net.minecraft.world.InteractionResult.PASS ? next.proceed(use)
                 : use.isClientSide() ? FocusUseResult.SUCCESS : FocusUseResult.CONSUME;
-    }
-
-    /** Runs before entity-owned trading, riding and other native interactions. */
-    public static net.minecraft.world.InteractionResult beforeEntityUse(Player player, InteractionHand hand,
-            net.minecraft.world.entity.Entity target) {
-        return target instanceof LivingEntity living
-                ? dev.tc4port.thaumcraft.api.wand.interaction.WandUseApi.beforeEntityInteraction(player, hand, living)
-                : net.minecraft.world.InteractionResult.PASS;
     }
 
     private static FocusUseResult vat(FocusUseContext use,
@@ -107,7 +99,10 @@ public final class WandInteractions {
             WandContinuation<FocusUseContext, FocusUseResult> next) {
         if (use.hand() != InteractionHand.MAIN_HAND || use.target() != FocusTargetKind.ENTITY
                 || !(use.hit() instanceof EntityHitResult hit) || !(hit.getEntity() instanceof LivingEntity target)
-                || target instanceof Player || !target.isAlive() || WandApi.view(use.carrier()).isEmpty()) {
+                || target instanceof Player || !target.isAlive() || target.isRemoved()
+                || target.level() != use.player().level()
+                || use.player().level().getEntity(target.getId()) != target
+                || !use.player().level().isLoaded(target.blockPosition()) || WandApi.view(use.carrier()).isEmpty()) {
             return next.proceed(use);
         }
         LivingData data = LivingData.get(target).orElse(null);

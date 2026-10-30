@@ -24,7 +24,6 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 *///?}
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -63,16 +62,6 @@ public final class IsorropiaEvents {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             LivingData.get(player).ifPresent(data -> data.syncTo(player));
-        }
-    }
-
-    @SubscribeEvent
-    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        var result = fr.wind_blade.isorropia.common.compat.WandInteractions.beforeEntityUse(
-                event.getEntity(), event.getHand(), event.getTarget());
-        if (result != net.minecraft.world.InteractionResult.PASS) {
-            event.setCancellationResult(result);
-            event.setCanceled(true);
         }
     }
 

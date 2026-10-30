@@ -1,19 +1,19 @@
 {
   "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20756",
   "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20756",
-  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/413 (a99b07f73d3a0be160ba06615ca7f388e31d2ad2)",
+  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/413 (b80212d1f1580ea691b2ebb2793009f64f9f2afe)",
   "artifacts": [
     {
       "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756-api.jar",
-      "sha256": "beffcdbdfe2f04e34da95fbafa1e14695ab75c617ee16376be0370a11317c55d"
+      "sha256": "b582ee465739c1f347cd8489f8c8cc7d80cfc128bbeadad65b99d1cbd37fd074"
     },
     {
       "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756-sources.jar",
-      "sha256": "749261ac0dbf50c49ce430241ea724f2551e1a798295afe15b3cfebdddd8fb9b"
+      "sha256": "9a9be43dcad41bf181caa9998403369833445a5f1c8847a8c5da8984aaf98518"
     },
     {
       "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756.jar",
-      "sha256": "0a23003ef20e840c121e5b3f151f4d7ee4721dec1696c3a561e5b192bf525714"
+      "sha256": "10f61a3704409d3930baa735b82125027f69acdc6ff857203de8de247b46b7c5"
     },
     {
       "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756.pom",
