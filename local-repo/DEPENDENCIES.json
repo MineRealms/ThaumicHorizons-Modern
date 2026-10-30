@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-forge:0.1.0-20753",
-  "runtime_version": "4.2.3.5-1.20.1-port.0.1.0-20753",
-  "source": "User-supplied local TC4R build (1.20.1-forge-20753-dev.zip, main jar seeded from ThaumicAdditions-Port); not redistributed",
+  "coordinate": "dev.tc4port:thaumcraft-forge:0.1.0-20756",
+  "runtime_version": "4.2.3.5-1.20.1-port.0.1.0-20756",
+  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/410",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753-api.jar",
-      "sha256": "d9393ef6d03d5a7f1db3c357ba1c3d0caa3ccc883253f92773203e4552146a4a"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20756/thaumcraft-forge-0.1.0-20756-api.jar",
+      "sha256": "144da00ae5a0f5b54baf28c6b5ca3475a6419c22a3215fdedcd31395127f0ac1"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753-sources.jar",
-      "sha256": "5887240f9d257b4b5aded090e1200c160dbef4e3a9bf171067247f5b0d3570ae"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20756/thaumcraft-forge-0.1.0-20756-sources.jar",
+      "sha256": "041564397ece7c597db357c421bf0d69dc1e0c51636f794c2709ff0b97e79ab9"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753.jar",
-      "sha256": "bde6cd53dc44c31000626fc9c516e958cd2dcd73b56ff57791617ef95420dbac"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20756/thaumcraft-forge-0.1.0-20756.jar",
+      "sha256": "410601b3c12cda16c141c3126a2c67e5c330651ac82f4f951553557b7b238222"
     },
     {
-      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20753/thaumcraft-forge-0.1.0-20753.pom",
-      "sha256": "dd4e019d2144fa83d676535fc2a0cd9fb1ddfabc736127ceb7aca8f36b75594b"
+      "path": "dev/tc4port/thaumcraft-forge/0.1.0-20756/thaumcraft-forge-0.1.0-20756.pom",
+      "sha256": "f36a697581c2c6409e627a2069731962ffaa4f4d29f6507ecea073b99a2e014b"
     }
   ]
 }

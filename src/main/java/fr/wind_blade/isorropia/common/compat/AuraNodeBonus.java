@@ -1,55 +1,37 @@
 package fr.wind_blade.isorropia.common.compat;
 
-import dev.tc4port.thaumcraft.api.aspect.AspectId;
-import dev.tc4port.thaumcraft.block.entity.AuraNodeBlockEntity;
+import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
+import dev.tc4port.thaumcraft.api.event.EnergizedNodeEvent;
+import fr.wind_blade.isorropia.Isorropia;
+import fr.wind_blade.isorropia.common.blocks.BlockTransductionAmplifier;
+import fr.wind_blade.isorropia.common.tiles.TileTransductionAmplifier;
+import java.util.LinkedHashMap;
+import net.minecraft.core.Direction;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-import java.lang.reflect.Method;
-import java.util.Map;
-
-/**
- * Call site for TH's transduction-amplifier boost. TC4R has no public API to raise an energized node's
- * base vis, so {@link AuraNodeBlockEntityMixin} adds the method and we bridge to it through reflection.
- * If the mixin is disabled the calls become no-ops instead of crashing.
- */
+/** Live amplifier contributions; TC4 owns the output pool, caching and synchronization. */
+@Mod.EventBusSubscriber(modid = Isorropia.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class AuraNodeBonus {
-    private static final Method ADD;
-    private static final Method GET;
+    private AuraNodeBonus() { }
 
-    static {
-        Method a = null;
-        Method g = null;
-        try {
-            a = AuraNodeBlockEntity.class.getMethod("isorropia$addTransducerBonus", AspectId.class, int.class);
-            g = AuraNodeBlockEntity.class.getMethod("isorropia$transducerBonus");
-        } catch (ReflectiveOperationException ignored) {
-            // Mixin not applied (required: false): bonuses are simply unavailable.
-        }
-        ADD = a;
-        GET = g;
-    }
-
-    public static void add(AuraNodeBlockEntity node, AspectId aspect, int delta) {
-        if (ADD != null) {
-            try {
-                ADD.invoke(node, aspect, delta);
-            } catch (ReflectiveOperationException ignored) {
-                // best-effort; a failed boost should not break the transducer tick
+    @SubscribeEvent
+    public static void onNodeOutput(EnergizedNodeEvent.Output event) {
+        int amplifiers = 0;
+        for (Direction direction : Direction.values()) {
+            var position = event.node().relative(direction);
+            if (!event.level().hasChunkAt(position)) continue;
+            var entity = event.level().getBlockEntity(position);
+            if (entity instanceof TileTransductionAmplifier amplifier && amplifier.isActivated()
+                    && !amplifier.isRemoved()
+                    && amplifier.getBlockState().getValue(BlockTransductionAmplifier.FACING) == direction.getOpposite()) {
+                amplifiers++;
             }
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static Map<AspectId, Integer> get(AuraNodeBlockEntity node) {
-        if (GET != null) {
-            try {
-                return (Map<AspectId, Integer>) GET.invoke(node);
-            } catch (ReflectiveOperationException ignored) {
-                // fall through
-            }
-        }
-        return Map.of();
-    }
-
-    private AuraNodeBonus() {
+        if (amplifiers == 0) return;
+        int bonus = amplifiers * 10;
+        var output = new LinkedHashMap<>(event.output().amounts());
+        output.replaceAll((aspect, amount) -> Math.addExact(amount, bonus));
+        event.setOutput(new AspectAmounts(output));
     }
 }

@@ -1,7 +1,7 @@
 package fr.wind_blade.isorropia.common.blocks;
 
-import dev.tc4port.thaumcraft.block.entity.AuraNodeBlockEntity;
-import dev.tc4port.thaumcraft.registry.TCBlocks;
+import dev.tc4port.thaumcraft.api.ThaumcraftContent;
+import dev.tc4port.thaumcraft.api.node.AuraNodeView;
 import fr.wind_blade.isorropia.common.tiles.TileTransductionAmplifier;
 import fr.wind_blade.isorropia.common.tiles.TilesIS;
 import net.minecraft.core.BlockPos;
@@ -45,9 +45,9 @@ public class BlockTransductionAmplifier extends Block implements EntityBlock {
     }
 
     @Nullable
-    private static AuraNodeBlockEntity energizedNode(BlockGetter level, BlockPos pos) {
+    private static AuraNodeView energizedNode(BlockGetter level, BlockPos pos) {
         BlockEntity entity = level.getBlockEntity(pos);
-        return entity instanceof AuraNodeBlockEntity node && node.getBlockState().is(TCBlocks.ENERGIZED_AURA_NODE.get())
+        return entity instanceof AuraNodeView node && level.getBlockState(pos).is(ThaumcraftContent.block("energized_aura_node"))
                 ? node : null;
     }
 
@@ -83,21 +83,6 @@ public class BlockTransductionAmplifier extends Block implements EntityBlock {
                 amplifier.setShouldActivate(level.hasNeighborSignal(pos));
             }
         }
-    }
-
-    @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock())) {
-            BlockEntity entity = level.getBlockEntity(pos);
-            if (entity instanceof TileTransductionAmplifier amplifier) {
-                // TH killMe: pull the bonus back off the node before the block (and its tile) goes away.
-                AuraNodeBlockEntity node = amplifier.nodeFor(level, pos);
-                if (node != null && amplifier.isActivated()) {
-                    amplifier.unboostNode(node);
-                }
-            }
-        }
-        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     @Nullable

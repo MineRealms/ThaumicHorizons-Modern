@@ -2,11 +2,10 @@ package fr.wind_blade.isorropia.common.tiles;
 
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.flux.FluxApi;
-import dev.tc4port.thaumcraft.block.entity.AuraNodeBlockEntity;
-import dev.tc4port.thaumcraft.registry.TCBlocks;
-import dev.tc4port.thaumcraft.registry.TCFluids;
+import dev.tc4port.thaumcraft.api.ThaumcraftContent;
+import dev.tc4port.thaumcraft.api.node.AuraNodeView;
+import dev.tc4port.thaumcraft.api.node.NodeApi;
 import fr.wind_blade.isorropia.common.blocks.BlockTransductionAmplifier;
-import fr.wind_blade.isorropia.common.compat.AuraNodeBonus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -19,18 +18,10 @@ import net.minecraft.world.phys.AABB;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Thaumic Horizons' transduction amplifier, ported to TC4R. While a redstone signal feeds it ({@link #shouldActivate})
- * it folds a +10 bonus per aspect into the energized node it points at, through {@link AuraNodeBonus} so the boost
- * survives the node's per-tick base-vis recompute. The bonus is not persisted on the node: if the amplifier is removed
- * or deactivated the node returns to normal, and re-applying a fresh signal re-applies a fresh bonus. Several amplifiers
- * around one node reinforce each other; with two the node arcs lightning, with three it leaks flux, and a fourth would
- * collapse it into a vortex (deferred to the planar-vortex task, which supplies the vortex block).
- */
+/** Redstone-controlled amplifier; the public energized-output event supplies its live +10 contribution. */
 public class TileTransductionAmplifier extends BlockEntity {
     /** The four amplifiers counted around a node, as TH did: north/south/east/west of it. */
     private static final List<Direction> HORIZONTAL = Arrays.asList(Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST);
@@ -54,13 +45,14 @@ public class TileTransductionAmplifier extends BlockEntity {
 
     /** The energized node this amplifier points at, or null if none. */
     @Nullable
-    public AuraNodeBlockEntity nodeFor(Level level, BlockPos pos) {
+    public AuraNodeView nodeFor(Level level, BlockPos pos) {
         if (facing == null) {
             return null;
         }
-        BlockEntity entity = level.getBlockEntity(pos.relative(facing));
-        return entity instanceof AuraNodeBlockEntity node && node.getBlockState().is(TCBlocks.ENERGIZED_AURA_NODE.get())
-                ? node : null;
+        BlockPos nodePos = pos.relative(facing);
+        return level.hasChunkAt(nodePos)
+                && level.getBlockState(nodePos).is(ThaumcraftContent.block("energized_aura_node"))
+                ? NodeApi.view(level, nodePos) : null;
     }
 
     public boolean isActivated() {
@@ -83,25 +75,13 @@ public class TileTransductionAmplifier extends BlockEntity {
         this.shouldActivate = value;
     }
 
-    private void boostNode(AuraNodeBlockEntity node) {
-        for (AspectId aspect : node.energizedBase().keySet()) {
-            AuraNodeBonus.add(node, aspect, 10);
-        }
-    }
-
-    public void unboostNode(AuraNodeBlockEntity node) {
-        for (AspectId aspect : node.energizedBase().keySet()) {
-            AuraNodeBonus.add(node, aspect, -10);
-        }
-    }
-
     public static void serverTick(Level level, BlockPos pos, BlockState state, TileTransductionAmplifier amplifier) {
         if (!amplifier.fireOnce) {
             amplifier.facing = state.getValue(BlockTransductionAmplifier.FACING);
             amplifier.shouldActivate = level.hasNeighborSignal(pos);
             amplifier.fireOnce = true;
         }
-        AuraNodeBlockEntity node = amplifier.nodeFor(level, pos);
+        AuraNodeView node = amplifier.nodeFor(level, pos);
         if (node == null) {
             // TH killMe: the node is gone, so the amplifier falls away too. Only once the node's own chunk is loaded,
             // though: the node sits across a possible chunk border, and an unloaded neighbour must not cost us the
@@ -120,11 +100,9 @@ public class TileTransductionAmplifier extends BlockEntity {
             amplifier.count--;
         }
         if (amplifier.shouldActivate && !amplifier.activated) {
-            amplifier.boostNode(node);
             amplifier.activated = true;
             amplifier.syncToClients();
         } else if (!amplifier.shouldActivate && amplifier.activated) {
-            amplifier.unboostNode(node);
             amplifier.activated = false;
             amplifier.syncToClients();
         }
@@ -143,16 +121,8 @@ public class TileTransductionAmplifier extends BlockEntity {
         ServerLevel server = (ServerLevel) level;
         if (transducers > 3 && amplifier.count % 50 == 0) {
             // Four amplifiers tear the node open: TH swapped the node for a vortex carrying the node's base aspects.
-            // The bonus has to come off the reading first, because pulling it back empties the derived base cache.
-            Map<AspectId, Integer> bonus = AuraNodeBonus.get(node);
-            Map<AspectId, Integer> collapsed = new LinkedHashMap<>();
-            for (Map.Entry<AspectId, Integer> entry : node.energizedBase().entrySet()) {
-                int base = entry.getValue() - bonus.getOrDefault(entry.getKey(), 0);
-                if (base > 0) {
-                    collapsed.put(entry.getKey(), base);
-                }
-            }
-            amplifier.unboostNode(node);
+            Map<AspectId, Integer> collapsed = node.energizedOutput()
+                    .map(output -> output.baseOutput().amounts()).orElse(Map.of());
             level.setBlock(nodePos, fr.wind_blade.isorropia.common.blocks.BlocksIS.VORTEX.get().defaultBlockState(), 3);
             if (level.getBlockEntity(nodePos) instanceof TileVortex vortex) {
                 vortex.setAspects(collapsed);
@@ -164,7 +134,8 @@ public class TileTransductionAmplifier extends BlockEntity {
             int dz = level.random.nextInt(16) - 8;
             BlockPos target = pos.offset(dx, dy, dz);
             if (level.isEmptyBlock(target)) {
-                var fluid = dy > 0 ? TCFluids.FLUX_GAS.get() : TCFluids.FLUX_GOO.get();
+                var fluid = net.minecraft.core.registries.BuiltInRegistries.FLUID.get(
+                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("thaumcraft", dy > 0 ? "flux_gas" : "flux_goo"));
                 FluxApi.place(server, target, fluid, 9, 3);
             }
         }

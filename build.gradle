@@ -38,14 +38,6 @@ if (isForge) {
             configureEach {
                 gameDirectory = rootProject.file('run')
                 systemProperty 'forge.logging.console.level', 'info'
-                // LegacyForge dev runs need the config explicitly; packaged jars use MixinConfigs.
-                programArgument '--mixin'
-                programArgument "${mod_id}.mixins.json"
-                // LegacyForge sets `mixin.env.remapRefMap` and `mixin.env.refMapRemappingFile`
-                // itself (pointing at its own `moddev/artifacts/intermediateToNamed.srg`), so the
-                // single-version build's hand-written values must NOT be repeated here - a stale
-                // path silently disables refmap remapping and every SRG-named dependency mixin
-                // fails to apply.
             }
             client {
                 client()
@@ -161,9 +153,6 @@ if (isForge) {
     }
 
     tasks.named('jar', Jar).configure {
-        // Forge 1.20.1 reads mixin configs only from the MixinConfigs manifest attribute. Dev runs
-        // load the exploded resources directory, which carries the same attribute in
-        // META-INF/MANIFEST.MF; the jar gets a generated one instead.
         exclude 'META-INF/MANIFEST.MF'
         manifest {
             attributes('Specification-Title': mod_name, 'Specification-Vendor': mod_authors,
@@ -172,8 +161,7 @@ if (isForge) {
                     // the human-facing title from the root project name plus the logical MC
                     // version; this reproduces the single-version build's `Isorropia-1.20.1`.
                     'Implementation-Title': "${rootProject.name}-${sc.current.version}",
-                    'Implementation-Version': project.version, 'Implementation-Vendor': mod_authors,
-                    'MixinConfigs': "${mod_id}.mixins.json")
+                    'Implementation-Version': project.version, 'Implementation-Vendor': mod_authors)
         }
         // ModDevGradle performs the SRG reobf itself; a hand-rolled `finalizedBy 'reobfJar'`
         // would double-run (or fail on a missing task).
@@ -341,6 +329,40 @@ tasks.register('verifyLocalDependencies') {
 }
 tasks.named('compileJava').configure { dependsOn 'verifyLocalDependencies' }
 tasks.named('check').configure { dependsOn 'verifyLocalDependencies' }
+
+// Verify the migrated integration family without any core implementation classes.
+configurations.create('tc4PublicApiVerification')
+dependencies {
+    tc4PublicApiVerification("dev.tc4port:thaumcraft-${isForge ? 'forge' : 'neoforge'}:${thaumcraft_version}:api") {
+        transitive = false
+    }
+}
+tasks.register('verifyPublicApiIntegrations', JavaCompile) {
+    group = 'verification'
+    dependsOn tasks.named('compileJava')
+    javaCompiler = tasks.named('compileJava', JavaCompile).flatMap { it.javaCompiler }
+    source(sourceSets.main.allJava.matching {
+        include '**/common/compat/HeldWandTargets.java', '**/common/compat/AuraNodeBonus.java'
+        include '**/common/blocks/BlockVisDynamo.java', '**/common/blocks/BlockEtherealShard.java'
+        include '**/common/blocks/BlockTransductionAmplifier.java', '**/common/tiles/TileTransductionAmplifier.java'
+    })
+    classpath = files(provider {
+        sourceSets.main.compileClasspath.filter { !it.name.startsWith('thaumcraft-') }
+    }, configurations.tc4PublicApiVerification, sourceSets.main.output)
+    destinationDirectory = layout.buildDirectory.dir('api-integration-check')
+    options.compilerArgs.add('-implicit:none')
+    doFirst {
+        classpath.files.findAll { it.name.endsWith('.jar') }.each { dependency ->
+            def archive = new java.util.zip.ZipFile(dependency)
+            try {
+                if (archive.getEntry('dev/tc4port/thaumcraft/block/entity/AuraNodeBlockEntity.class') != null) {
+                    throw new GradleException('Core implementation is present in the public API verification classpath')
+                }
+            } finally { archive.close() }
+        }
+    }
+}
+tasks.named('check').configure { dependsOn 'verifyPublicApiIntegrations' }
 
 tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false

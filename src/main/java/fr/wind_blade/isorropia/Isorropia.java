@@ -82,7 +82,7 @@ public class Isorropia {
         });
         *///?}
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(AlchemiteDispenseBehavior::register));
-        modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(HeldWandTargets::reportHook));
+        modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(HeldWandTargets::register));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(CrystalWandParts::register));
     }
 

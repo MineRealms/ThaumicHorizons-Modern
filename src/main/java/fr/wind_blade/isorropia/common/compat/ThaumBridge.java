@@ -12,8 +12,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.level.block.Block;
 
 /**
- * The only place the mod touches TC4R classes that are public but outside {@code api.*}. Everything here is a
- * version-upgrade checkpoint: flux release, the curse effects, the stabilizer block tag and wand first-use dispatch.
+ * Shared flux, status-effect and stabilizer lookups used by the addon.
  */
 public final class ThaumBridge {
     /** The tag the infusion matrix itself reads to recognize stabilizers. */
@@ -21,10 +20,6 @@ public final class ThaumBridge {
             ResourceLocation.fromNamespaceAndPath("thaumcraft", "infusion_stabilizers"));
 
     private ThaumBridge() {
-    }
-
-    /** TC4R 20732's first-use wand dispatch checks this internal marker before running the focus. */
-    public interface WandTarget extends dev.tc4port.thaumcraft.common.WandInteractionTarget {
     }
 
     /** Spills one to nine quanta of flux, goo or gas, at a position. */
