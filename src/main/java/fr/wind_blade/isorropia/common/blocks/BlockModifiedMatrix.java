@@ -62,12 +62,18 @@ public class BlockModifiedMatrix extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
     *///?}
+        return useWand(state, level, pos, player, hand, hit, level.isClientSide);
+    }
+
+    /** Shared admission for the native callback and the item-first wand pipeline. */
+    public InteractionResult useWand(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit, boolean client) {
         if (hand != InteractionHand.MAIN_HAND || !WandApi.view(player.getItemInHand(hand)).isPresent()) {
             return InteractionResult.PASS;
         }
         if (level.getBlockEntity(pos) instanceof TileModifiedMatrix matrix) {
-            matrix.onWandUse(player);
-            return InteractionResult.sidedSuccess(level.isClientSide);
+            if (!client) matrix.onWandUse(player);
+            return InteractionResult.sidedSuccess(client);
         }
         return InteractionResult.PASS;
     }

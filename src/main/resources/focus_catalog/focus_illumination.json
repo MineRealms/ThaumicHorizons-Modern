@@ -42,6 +42,12 @@
         ],
         "bindings": [
           {
+            "id": "isorropia:prediction/illumination",
+            "stage": "thaumcraft:cast/predict",
+            "handler": "isorropia:illumination/predict",
+            "priority": -200
+          },
+          {
             "id": "isorropia:actions/cast",
             "stage": "thaumcraft:cast/step",
             "handler": "thaumcraft:focus_actions",

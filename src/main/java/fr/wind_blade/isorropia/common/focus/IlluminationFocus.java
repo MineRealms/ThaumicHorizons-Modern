@@ -7,6 +7,13 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusGesture;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusPredictionContext;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseResult;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandContinuation;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandPipelineApi;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
@@ -17,8 +24,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
 import java.util.Set;
 
@@ -48,15 +57,36 @@ public final class IlluminationFocus {
     public static void register() {
         // The rate comes from the focus catalog; declaring it stops a datapack from dropping it.
         FocusApi.requireParameters(ItemFocusIllumination.ID, Set.of("vis_discount"));
+        WandPipelineApi.define(Isorropia.id("illumination/predict"), WandCastStages.PREDICT, IlluminationFocus::predict);
         FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusIllumination.ID, FocusCompat.Aim.BLOCK,
                 FocusCompat.Mode.INSTANT, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
                 IlluminationFocus::handle);
+    }
+
+    private static FocusUseResult predict(FocusPredictionContext request,
+            WandContinuation<FocusPredictionContext, FocusUseResult> next) {
+        if (request.input() != FocusInput.SECONDARY || request.use().gesture() != FocusGesture.PRESS
+                || request.use().target() != dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind.BLOCK) {
+            return next.proceed(request);
+        }
+        var aimed = request.aim(RANGE);
+        if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
+                || !available(aimed.use().player().level(), hit)) return FocusUseResult.PASS;
+        return next.proceed(aimed.configuredCost().map(aimed::withCost).orElseGet(aimed::withoutCost));
+    }
+
+    private static boolean available(Level level, BlockHitResult hit) {
+        BlockPos target = hit.getBlockPos().relative(hit.getDirection());
+        return !level.isOutsideBuildHeight(target) && level.hasChunkAt(target)
+                && level.getBlockState(target).canBeReplaced();
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
         if (FocusCompat.phase(context) != FocusCompat.Phase.PRESS) {
             return FocusActionResult.PASS;
         }
+        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
+                || !available(context.player().level(), hit)) return FocusActionResult.PASS;
         if (!context.pay(context.configuredCost(), action).affordable()) {
             return FocusActionResult.FAILED;
         }
@@ -64,14 +94,8 @@ public final class IlluminationFocus {
         if (action != VisAction.EXECUTE) {
             return FocusActionResult.SUCCESS;
         }
-        if (!(context.authoritativeHit() instanceof BlockHitResult hit)) {
-            return FocusActionResult.PASS;
-        }
         ServerLevel level = context.player().serverLevel();
         BlockPos target = hit.getBlockPos().relative(hit.getDirection());
-        if (!level.getBlockState(target).canBeReplaced()) {
-            return FocusActionResult.PASS;
-        }
         BlockState mote = BlocksIS.LIGHT.get().defaultBlockState()
                 .setValue(BlockLight.COLOUR, colour(context))
                 .setValue(BlockLight.SOLAR, solar(context));

@@ -1,6 +1,5 @@
 package fr.wind_blade.isorropia.common.blocks;
 
-import dev.tc4port.thaumcraft.item.WandItem;
 import fr.wind_blade.isorropia.common.tiles.TileVortex;
 import fr.wind_blade.isorropia.common.tiles.TilesIS;
 import net.minecraft.core.BlockPos;
@@ -68,13 +67,19 @@ public class BlockVortex extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
     *///?}
-        if (!(player.getItemInHand(hand).getItem() instanceof WandItem)) {
+        return useWand(state, level, pos, player, hand, hit, level.isClientSide);
+    }
+
+    /** Shared admission for the native callback and the item-first wand pipeline. */
+    public InteractionResult useWand(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit, boolean client) {
+        if (dev.tc4port.thaumcraft.api.wand.WandApi.view(player.getItemInHand(hand)).isEmpty()) {
             return InteractionResult.PASS;
         }
-        if (level.getBlockEntity(pos) instanceof TileVortex vortex) {
+        if (!client && level.getBlockEntity(pos) instanceof TileVortex vortex) {
             vortex.popStored(player);
         }
-        return InteractionResult.sidedSuccess(level.isClientSide);
+        return InteractionResult.sidedSuccess(client);
     }
 
     /** A vortex placed by hand swallows a random handful of aspects, as TH's did. */

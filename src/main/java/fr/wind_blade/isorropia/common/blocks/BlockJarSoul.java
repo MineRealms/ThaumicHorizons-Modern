@@ -97,13 +97,19 @@ public class BlockJarSoul extends HorizontalDirectionalBlock implements EntityBl
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
     *///?}
+        return useWand(state, level, pos, player, hand, hit, level.isClientSide);
+    }
+
+    /** Shared admission for the native callback and the item-first wand pipeline. */
+    public InteractionResult useWand(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit, boolean client) {
         if (hand != InteractionHand.MAIN_HAND || WandApi.view(player.getItemInHand(hand)).isEmpty()) {
             return InteractionResult.PASS;
         }
         if (!(level.getBlockEntity(pos) instanceof TileJarSoul jar) || jar.getEntityData() == null) {
             return InteractionResult.PASS;
         }
-        if (level.isClientSide) {
+        if (client) {
             return InteractionResult.SUCCESS;
         }
         LivingEntity freed = SoulJar.releaseAt(jar.getEntityData(), level, pos);

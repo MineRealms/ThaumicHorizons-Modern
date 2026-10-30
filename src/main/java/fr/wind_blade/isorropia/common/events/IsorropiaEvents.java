@@ -1,14 +1,6 @@
 package fr.wind_blade.isorropia.common.events;
 
-import dev.tc4port.thaumcraft.api.ThaumcraftApiHelper;
-import dev.tc4port.thaumcraft.api.aspect.VisAction;
-import dev.tc4port.thaumcraft.api.aspect.VisChannel;
-import dev.tc4port.thaumcraft.api.aspect.VisConsumptionContext;
-import dev.tc4port.thaumcraft.api.aspect.VisCost;
 import dev.tc4port.thaumcraft.api.damage.ThaumcraftDamageTypes;
-import dev.tc4port.thaumcraft.api.research.ResearchApi;
-import dev.tc4port.thaumcraft.api.research.ResearchKey;
-import dev.tc4port.thaumcraft.api.wand.WandApi;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.common.capabilities.LivingData;
 import fr.wind_blade.isorropia.common.focus.ContainmentFocus;
@@ -16,17 +8,12 @@ import fr.wind_blade.isorropia.common.infusion.CreatureAbilities;
 import fr.wind_blade.isorropia.common.infusion.SelfInfusions;
 import fr.wind_blade.isorropia.common.infusion.SoulBeacon;
 import fr.wind_blade.isorropia.common.lenses.LensManager;
-import fr.wind_blade.isorropia.common.vat.VatStructure;
-import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
 //? if forge {
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.TickEvent;
@@ -41,7 +28,6 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.Map;
 
 /**
  * Everything the infusion system hangs off the world with: the per-entity infusion data, the wand gesture that
@@ -50,10 +36,6 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = Isorropia.MODID)
 public final class IsorropiaEvents {
     private static final ResourceLocation LIVING_DATA = Isorropia.id("living_data");
-    private static final ResearchKey CURATIVE_VAT = ResearchKey.of(Isorropia.MODID, "curativevat");
-    /** Thaumic Horizons charged water, earth and order vis for the vat. */
-    private static final Map<VisChannel, Integer> VAT_COST = Map.of(VisChannel.AQUA, 50, VisChannel.TERRA, 50, VisChannel.ORDO, 50);
-
     private IsorropiaEvents() {
     }
 
@@ -81,6 +63,24 @@ public final class IsorropiaEvents {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             LivingData.get(player).ifPresent(data -> data.syncTo(player));
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        var result = fr.wind_blade.isorropia.common.compat.WandInteractions.beforeEntityUse(
+                event.getEntity(), event.getHand(), event.getTarget());
+        if (result != net.minecraft.world.InteractionResult.PASS) {
+            event.setCancellationResult(result);
+            event.setCanceled(true);
+        }
+    }
+
+    /** New observers need the infusion state before predicting a wand interaction. */
+    @SubscribeEvent
+    public static void onStartTracking(PlayerEvent.StartTracking event) {
+        if (event.getEntity() instanceof ServerPlayer player && event.getTarget() instanceof LivingEntity living) {
+            LivingData.get(living).ifPresent(data -> data.syncTo(player));
         }
     }
 
@@ -180,57 +180,6 @@ public final class IsorropiaEvents {
             data.sync();
         });
         SoulBeacon.tryRevive(event, player);
-    }
-
-    /**
-     * Forming the vat: a wand right-click on the frame the player built. Thaumcraft has no extension point for
-     * a wand turning a structure into a multiblock, so the click is claimed here.
-     */
-    @SubscribeEvent
-    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getHand() != InteractionHand.MAIN_HAND || event.getLevel().isClientSide) {
-            return;
-        }
-        ItemStack wand = event.getItemStack();
-        if (WandApi.view(wand).isEmpty()) {
-            return;
-        }
-        Player player = event.getEntity();
-        if (!ResearchApi.isComplete(player, CURATIVE_VAT)) {
-            return;
-        }
-        Level level = event.getLevel();
-        BlockPos clicked = event.getPos();
-        if (VatStructure.isVatBlock(level.getBlockState(clicked))) {
-            return;
-        }
-        BlockPos master = VatStructure.findUnformed(level, clicked).orElse(null);
-        if (master == null) {
-            return;
-        }
-        VisCost cost = VisCost.ofWholeVis(VAT_COST);
-        if (!ThaumcraftApiHelper.consumeVisFromWand(wand, player, cost, VisAction.EXECUTE, VisConsumptionContext.CRAFTING)
-                .consumed()) {
-            return;
-        }
-        VatStructure.form(level, master);
-        event.setCanceled(true);
-    }
-
-    /** A wand aimed at a creature with the portability organ jars it, as upstream's capture gesture. */
-    @SubscribeEvent
-    public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
-        if (event.getHand() != InteractionHand.MAIN_HAND || event.getLevel().isClientSide
-                || !(event.getTarget() instanceof LivingEntity target)) {
-            return;
-        }
-        if (WandApi.view(event.getItemStack()).isEmpty()) {
-            return;
-        }
-        LivingData data = LivingData.get(target).orElse(null);
-        if (data != null && data.hasInfusion(CreatureAbilities.PORTABILITY) && CreatureAbilities.jarInto(event.getEntity(), target)) {
-            event.setCanceled(true);
-        }
     }
 
     private static boolean isTaint(DamageSource source) {

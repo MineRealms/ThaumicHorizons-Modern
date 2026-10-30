@@ -111,14 +111,15 @@ public final class VatStructure {
         return true;
     }
 
-    public static void form(Level level, BlockPos master) {
+    public static boolean form(Level level, BlockPos master) {
         for (int dy = 0; dy > -HEIGHT; dy--) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
-                    level.setBlock(master.offset(dx, dy, dz), formedAt(dx, dy, dz), Block.UPDATE_ALL);
+                    if (!level.setBlock(master.offset(dx, dy, dz), formedAt(dx, dy, dz), Block.UPDATE_ALL)) return false;
                 }
             }
         }
+        return true;
     }
 
     /** Turns the vat back into its building blocks, skipping {@code skip} (the block being broken). */

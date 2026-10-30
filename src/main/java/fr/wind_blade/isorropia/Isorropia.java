@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import fr.wind_blade.isorropia.common.IsorropiaCreativeTabs;
 import fr.wind_blade.isorropia.common.blocks.BlocksIS;
 import fr.wind_blade.isorropia.common.compat.HeldWandTargets;
+import fr.wind_blade.isorropia.common.compat.WandInteractions;
 import fr.wind_blade.isorropia.common.config.ConfigIS;
 import fr.wind_blade.isorropia.common.entities.AlchemiteDispenseBehavior;
 import fr.wind_blade.isorropia.common.entities.EntitiesIS;
@@ -83,6 +84,7 @@ public class Isorropia {
         *///?}
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(AlchemiteDispenseBehavior::register));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(HeldWandTargets::register));
+        modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(WandInteractions::register));
         modBus.addListener((FMLCommonSetupEvent event) -> event.enqueueWork(CrystalWandParts::register));
     }
 
