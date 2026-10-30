@@ -10,9 +10,6 @@ authors="${mod_authors}"
 credits="Original Isorropia by wind_blade; kedition by keletu and IcarussOne. Unofficial 1.21.1 port."
 description='''${mod_description}'''
 
-[[mixins]]
-config="${mod_id}.mixins.json"
-
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"

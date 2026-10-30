@@ -71,8 +71,11 @@ python tools/client_sweep.py            # 同一会话跑完全部客户端探�
 多版本基于 Stonecutter：`src/` 为规范源码树，节点差异用 stonecutter 条件与平台 shim 表达，
 `versions/<节点>/gradle.properties` 承载节点坐标。
 
-TC4R 是用户提供的本地构建，**不入库**：把 `local-repo/dev/tc4port/thaumcraft-forge/0.1.0-20740/{jar,pom}`
-从相邻工程（如 `../Technomancy-1.20.1/local-repo`）复制过来即可，或用 `-Ptc4Repository=<maven 根>` 指向别处。
+TC4R 是用户提供的本地构建，**不入库**：按 `local-repo/DEPENDENCIES*.json` 放入对应节点的
+运行包、API 包、源码包和 POM，或用 `-Ptc4Repository=<maven 根>` 指向已有仓库。当前节点交互
+依赖 [TC4R 的充能节点输出 API](https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/410)：
+法杖持续使用通过 `WandBlockUseApi` 注册，转导放大器通过 `EnergizedNodeEvent.Output` 提供每台 +10 的实时加成，
+停用、拆除或卸载后撤销贡献；不再向 TC4R 注入 Mixin。
 
 ## 当前进度
 

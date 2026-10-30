@@ -11,6 +11,7 @@ tasks.register('buildAndCollect', Sync) {
     group = 'build'
     description = 'Builds, tests and verifies every target, then collects the release jars.'
     dependsOn ':1.20.1-forge:build', ':1.21.1-neoforge:build'
+    dependsOn ':1.20.1-forge:nameReleaseJar', ':1.21.1-neoforge:nameReleaseJar'
     from(layout.projectDirectory.dir('versions/1.20.1-forge/build/libs')) { include '*.jar' }
     from(layout.projectDirectory.dir('versions/1.21.1-neoforge/build/libs')) { include '*.jar' }
     into layout.buildDirectory.dir('distributions')

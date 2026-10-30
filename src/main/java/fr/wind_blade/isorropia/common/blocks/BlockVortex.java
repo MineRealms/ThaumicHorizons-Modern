@@ -1,7 +1,6 @@
 package fr.wind_blade.isorropia.common.blocks;
 
 import dev.tc4port.thaumcraft.item.WandItem;
-import fr.wind_blade.isorropia.common.compat.ThaumBridge;
 import fr.wind_blade.isorropia.common.tiles.TileVortex;
 import fr.wind_blade.isorropia.common.tiles.TilesIS;
 import net.minecraft.core.BlockPos;
@@ -32,7 +31,7 @@ import javax.annotation.Nullable;
  * no collision, so entities fall straight through and are then dragged in. Right-clicking it with a wand pulls a
  * stored void-crafted item back out (TH's {@code IWandable}).
  */
-public class BlockVortex extends Block implements EntityBlock, ThaumBridge.WandTarget {
+public class BlockVortex extends Block implements EntityBlock {
     /** TH gave the rift a 0.3-0.7 target box while leaving its collision empty. */
     private static final VoxelShape SHAPE = Shapes.box(0.3, 0.3, 0.3, 0.7, 0.7, 0.7);
 
@@ -52,7 +51,7 @@ public class BlockVortex extends Block implements EntityBlock, ThaumBridge.WandT
 
     /**
      * TH's wand interaction: a wand right-click pulls the rift's oldest stored item back out. TC4R runs this from the
-     * wand item's first-use phase (see {@code WandInteractionTarget}), so a non-wand click is left to ordinary use.
+     * wand item's block-use phase, so a non-wand click is left to ordinary use.
      */
     //? if forge {
     @Override

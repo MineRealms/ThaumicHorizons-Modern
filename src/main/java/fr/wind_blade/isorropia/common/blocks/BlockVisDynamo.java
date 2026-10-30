@@ -1,8 +1,6 @@
 package fr.wind_blade.isorropia.common.blocks;
 
 import dev.tc4port.thaumcraft.api.wand.WandApi;
-import fr.wind_blade.isorropia.common.compat.HeldWandTargets;
-import fr.wind_blade.isorropia.common.compat.ThaumBridge;
 import fr.wind_blade.isorropia.common.menu.VisDynamoMenu;
 import fr.wind_blade.isorropia.common.tiles.TileVisDynamo;
 import net.minecraft.core.BlockPos;
@@ -29,7 +27,7 @@ import javax.annotation.Nullable;
  * TH's vis dynamo. Holding a wand against it charges the tile, which then feeds the vis network through
  * an adjacent relay; clicking it with anything else opens TH's six-primal selection screen.
  */
-public class BlockVisDynamo extends Block implements EntityBlock, ThaumBridge.WandTarget {
+public class BlockVisDynamo extends Block implements EntityBlock {
     public BlockVisDynamo(Properties properties) {
         super(properties);
     }
@@ -89,15 +87,7 @@ public class BlockVisDynamo extends Block implements EntityBlock, ThaumBridge.Wa
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
-        /*
-         * Both sides must enter the held use: the client's release is what ends the charge, and the
-         * server-side player is what the tile reads back each tick. The dynamo then owns the held wand.
-         */
-        player.startUsingItem(hand);
-        HeldWandTargets.begin(player, pos);
-        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            dynamo.beginCharging(serverPlayer, held);
-        }
-        return InteractionResult.SUCCESS;
+        // Let the wand start the registered public block-use session.
+        return InteractionResult.PASS;
     }
 }

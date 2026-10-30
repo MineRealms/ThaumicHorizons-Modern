@@ -3,8 +3,6 @@ package fr.wind_blade.isorropia.common.blocks;
 import dev.tc4port.thaumcraft.api.ThaumcraftContent;
 import dev.tc4port.thaumcraft.api.aspect.AspectApi;
 import dev.tc4port.thaumcraft.api.wand.WandApi;
-import fr.wind_blade.isorropia.common.compat.HeldWandTargets;
-import fr.wind_blade.isorropia.common.compat.ThaumBridge;
 import fr.wind_blade.isorropia.common.tiles.TileEtherealShard;
 import fr.wind_blade.isorropia.common.tiles.TilesIS;
 import net.minecraft.core.BlockPos;
@@ -32,7 +30,7 @@ import javax.annotation.Nullable;
  * Thaumic Horizons' ethereal shard. Right-click it with ethereal essence to give it capacity for that aspect;
  * hold a wand against it to draw the vis back out. The crystal itself is drawn by the block entity renderer.
  */
-public class BlockEtherealShard extends Block implements EntityBlock, ThaumBridge.WandTarget {
+public class BlockEtherealShard extends Block implements EntityBlock {
     /** TH's bounds: a narrow shard standing in the middle of the block, 0.3 to 0.7 across and full height. */
     private static final VoxelShape SHAPE = Block.box(4.8, 0.0, 4.8, 11.2, 16.0, 11.2);
 
@@ -79,12 +77,8 @@ public class BlockEtherealShard extends Block implements EntityBlock, ThaumBridg
              * Both sides must enter the held use: the client's release is what ends the draw, and the
              * server-side player is what the tile reads back each tick.
              */
-            player.startUsingItem(hand);
-            HeldWandTargets.begin(player, pos);
-            if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-                shard.beginDraining(serverPlayer, held);
-            }
-            return InteractionResult.SUCCESS;
+            // Let the wand start the registered public block-use session.
+            return InteractionResult.PASS;
         }
         if (!held.is(ThaumcraftContent.item("wisp_essence")) || AspectApi.getItemAspects(held).amounts().isEmpty()) {
             return InteractionResult.PASS;
