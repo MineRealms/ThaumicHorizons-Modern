@@ -9,6 +9,7 @@ import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
@@ -60,17 +61,17 @@ import java.util.Set;
  * extend upgrade lengthens the span; the berserk upgrade turns the golem on anything but its caller, and the
  * detonation upgrade makes it burst when it falls.
  */
-public final class AnimationFocus {
+public final class AnimationFocus implements FocusActionHandler {
     public static final ResourceLocation ACTION = Isorropia.id("animation");
     public static final ResearchKey RESEARCH = ResearchKey.of(Isorropia.MODID, "animation");
-    /** How far the wand reaches for a block to animate. */
+    /** Initial action range; query supplies native block reach before AIM. */
     public static final int RANGE = 10;
     /** The upgrade that turns the golem on anything but its caller. */
     public static final FocusUpgradeId BERSERK = FocusUpgradeId.of(Isorropia.id("berserk"));
     /** The upgrade that makes the golem burst when it falls. */
     public static final FocusUpgradeId DETONATION = FocusUpgradeId.of(Isorropia.id("detonation"));
 
-    private AnimationFocus() {
+    AnimationFocus() {
     }
 
     /** Registers the cast with Thaumcraft's wand. Called on both sides, as the wand predicts on the client. */
@@ -79,15 +80,24 @@ public final class AnimationFocus {
         FocusApi.requireParameters(ItemFocusAnimation.ID, Set.of("vis_discount", "duration"));
         WandPipelineApi.define(Isorropia.id("animation/predict"), WandCastStages.PREDICT, AnimationFocus::predict);
         FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusAnimation.ID),
-                FocusInput.SECONDARY, Set.of(FocusTargetKind.BLOCK), FocusCastMode.INSTANT,
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.INSTANT,
                 ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
-                AnimationFocus::handle, AnimationFocus::authorize);
+                new AnimationFocus(), AnimationFocus::authorize);
+    }
+
+    @Override
+    public WandCastStages.Aim query(WandCastStages.Aim query) {
+        //? if forge {
+        return query.withRange(query.player().getBlockReach());
+        //?} else {
+        /*return query.withRange(query.player().blockInteractionRange());
+        *///?}
     }
 
     private static FocusUseResult predict(FocusPredictionContext request,
             WandContinuation<FocusPredictionContext, FocusUseResult> next) {
         if (request.input() != FocusInput.SECONDARY || request.use().gesture() != FocusGesture.PRESS
-                || request.use().target() != dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind.BLOCK) {
+                || request.use().target() != FocusTargetKind.AIR) {
             return next.proceed(request);
         }
         var aimed = request.aim(ACTION);
@@ -102,7 +112,8 @@ public final class AnimationFocus {
         return next.proceed(aimed.withCost(primalCost(AnimatedBlockType.of(state).visCost)));
     }
 
-    private static FocusActionResult handle(FocusActionContext context, VisAction action) {
+    @Override
+    public FocusActionResult handle(FocusActionContext context, VisAction action) {
         if (context.gesture() != FocusGesture.PRESS) {
             return FocusActionResult.PASS;
         }

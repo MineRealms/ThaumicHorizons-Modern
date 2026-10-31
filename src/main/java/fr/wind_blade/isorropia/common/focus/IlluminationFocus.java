@@ -6,6 +6,7 @@ import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
@@ -23,14 +24,17 @@ import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.common.blocks.BlockLight;
-import fr.wind_blade.isorropia.common.blocks.BlocksIS;
 import fr.wind_blade.isorropia.common.items.ItemFocusIllumination;
-import net.minecraft.core.BlockPos;
+import fr.wind_blade.isorropia.common.items.ItemsIS;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
+//? if neoforge {
+/*import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.BlockItemStateProperties;
+*///?}
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 
@@ -43,10 +47,10 @@ import java.util.Set;
  *
  * <p>The mote's colour is the focus' own, kept as a focus property so the item and the block agree on it.
  */
-public final class IlluminationFocus {
+public final class IlluminationFocus implements FocusActionHandler {
     public static final ResourceLocation ACTION = Isorropia.id("illumination");
     public static final ResearchKey RESEARCH = ResearchKey.of(Isorropia.MODID, "illumination");
-    /** The mote is left on the face the wand is pointed at, within this reach. */
+    /** Initial action range; query supplies native block reach before AIM. */
     public static final int RANGE = 10;
     /** The upgrade that turns the mote solar, burning the undead that touch it. */
     public static final FocusUpgradeId SOLAR = FocusUpgradeId.of(Isorropia.id("solar"));
@@ -55,7 +59,7 @@ public final class IlluminationFocus {
     /** Upstream conjured the focus in the twelfth colour; absent a property, the port does the same. */
     public static final int DEFAULT_COLOUR = 11;
 
-    private IlluminationFocus() {
+    IlluminationFocus() {
     }
 
     /** Registers the cast with Thaumcraft's wand. Called on both sides, as the wand predicts on the client. */
@@ -64,35 +68,39 @@ public final class IlluminationFocus {
         FocusApi.requireParameters(ItemFocusIllumination.ID, Set.of("vis_discount"));
         WandPipelineApi.define(Isorropia.id("illumination/predict"), WandCastStages.PREDICT, IlluminationFocus::predict);
         FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusIllumination.ID),
-                FocusInput.SECONDARY, Set.of(FocusTargetKind.BLOCK), FocusCastMode.INSTANT,
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.INSTANT,
                 ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
-                IlluminationFocus::handle);
+                new IlluminationFocus());
+    }
+
+    @Override
+    public WandCastStages.Aim query(WandCastStages.Aim query) {
+        //? if forge {
+        return query.withRange(query.player().getBlockReach());
+        //?} else {
+        /*return query.withRange(query.player().blockInteractionRange());
+        *///?}
     }
 
     private static FocusUseResult predict(FocusPredictionContext request,
             WandContinuation<FocusPredictionContext, FocusUseResult> next) {
         if (request.input() != FocusInput.SECONDARY || request.use().gesture() != FocusGesture.PRESS
-                || request.use().target() != dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind.BLOCK) {
+                || request.use().target() != FocusTargetKind.AIR) {
             return next.proceed(request);
         }
         var aimed = request.aim(ACTION);
-        if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
-                || !available(aimed.use().player().level(), hit)) return FocusUseResult.PASS;
+        if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return FocusUseResult.PASS;
         return next.proceed(aimed.configuredCost().map(aimed::withCost).orElseGet(aimed::withoutCost));
     }
 
-    private static boolean available(Level level, BlockHitResult hit) {
-        BlockPos target = hit.getBlockPos().relative(hit.getDirection());
-        return !level.isOutsideBuildHeight(target) && level.hasChunkAt(target)
-                && level.getBlockState(target).canBeReplaced();
-    }
-
-    private static FocusActionResult handle(FocusActionContext context, VisAction action) {
+    @Override
+    public FocusActionResult handle(FocusActionContext context, VisAction action) {
         if (context.gesture() != FocusGesture.PRESS) {
             return FocusActionResult.PASS;
         }
-        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK
-                || !available(context.player().level(), hit)) return FocusActionResult.PASS;
+        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return FocusActionResult.PASS;
         if (!context.pay(context.configuredCost(), action).affordable()) {
             return FocusActionResult.FAILED;
         }
@@ -100,13 +108,21 @@ public final class IlluminationFocus {
         if (action != VisAction.EXECUTE) {
             return FocusActionResult.SUCCESS;
         }
-        ServerLevel level = context.player().serverLevel();
-        BlockPos target = hit.getBlockPos().relative(hit.getDirection());
-        BlockState mote = BlocksIS.LIGHT.get().defaultBlockState()
-                .setValue(BlockLight.COLOUR, colour(context))
-                .setValue(BlockLight.SOLAR, solar(context));
-        level.setBlock(target, mote, 3);
-        level.playSound(null, target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5,
+        ItemStack light = new ItemStack(ItemsIS.LIGHT.get());
+        // Native BlockItem placement applies these properties and owns placement events, rollback and feedback.
+        //? if forge {
+        var state = light.getOrCreateTagElement("BlockStateTag");
+        state.putString(BlockLight.COLOUR.getName(), Integer.toString(colour(context)));
+        state.putString(BlockLight.SOLAR.getName(), Boolean.toString(solar(context)));
+        //?} else {
+        /*light.set(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY
+                .with(BlockLight.COLOUR, colour(context)).with(BlockLight.SOLAR, solar(context)));
+        *///?}
+        if (!context.player().level().mayInteract(context.player(), hit.getBlockPos())) return FocusActionResult.FAILED;
+        var placement = new UseOnContext(context.player().level(), context.player(), context.hand(), light, hit);
+        var target = new BlockPlaceContext(placement).getClickedPos();
+        if (!light.useOn(placement).consumesAction()) return FocusActionResult.FAILED;
+        context.player().level().playSound(null, target.getX() + 0.5, target.getY() + 0.5, target.getZ() + 0.5,
                 ThaumcraftContent.sound("wand"), SoundSource.PLAYERS, 1.0F, 1.0F);
         return FocusActionResult.SUCCESS;
     }
