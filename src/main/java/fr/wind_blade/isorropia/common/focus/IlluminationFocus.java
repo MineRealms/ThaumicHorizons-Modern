@@ -7,8 +7,13 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
-import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
 import dev.tc4port.thaumcraft.api.focus.action.FocusGesture;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
+import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.focus.behavior.FocusPredictionContext;
 import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseResult;
 import dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages;
@@ -58,8 +63,9 @@ public final class IlluminationFocus {
         // The rate comes from the focus catalog; declaring it stops a datapack from dropping it.
         FocusApi.requireParameters(ItemFocusIllumination.ID, Set.of("vis_discount"));
         WandPipelineApi.define(Isorropia.id("illumination/predict"), WandCastStages.PREDICT, IlluminationFocus::predict);
-        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusIllumination.ID, FocusCompat.Aim.BLOCK,
-                FocusCompat.Mode.INSTANT, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
+        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusIllumination.ID),
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.BLOCK), FocusCastMode.INSTANT,
+                ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
                 IlluminationFocus::handle);
     }
 
@@ -82,7 +88,7 @@ public final class IlluminationFocus {
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        if (FocusCompat.phase(context) != FocusCompat.Phase.PRESS) {
+        if (context.gesture() != FocusGesture.PRESS) {
             return FocusActionResult.PASS;
         }
         if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK

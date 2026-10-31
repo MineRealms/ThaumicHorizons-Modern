@@ -1,11 +1,24 @@
 package fr.wind_blade.isorropia.common.focus;
 
+import com.mojang.datafixers.util.Unit;
 import dev.tc4port.thaumcraft.api.aspect.VisAction;
 import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusBehavior;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusBehaviorApi;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusEndReason;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusServerContext;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusServerSession;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusSyncedValue;
+import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import dev.tc4port.thaumcraft.api.item.SpecialMiningApi;
@@ -19,6 +32,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -39,11 +53,8 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * The liquefaction focus, as Thaumic Horizons built it for Thaumcraft 4: a fiery beam held on a target that
@@ -52,7 +63,7 @@ import java.util.UUID;
  * The beam hurts creatures only weakly. Loose items on the ground are smelted in place.
  *
  * <p>Harder matter takes longer: the beam fills a measure of the block's hardness before the block gives way, so
- * a stone block takes far longer than a tuft of grass. The measure is kept per player and resets the moment the
+ * a stone block takes far longer than a tuft of grass. The measure is kept per held focus and resets the moment the
  * beam moves to a different block.
  *
  * <p>Each melted block costs its vis; a creature costs the smaller critter rate instead. The nuggets upgrade
@@ -81,10 +92,6 @@ public final class LiquefactionFocus {
     private static final float PURITY_CHANCE = 9999.0F;
     /** How long the beam sets a creature alight. */
     private static final int BURN_SECONDS = 4;
-    /** The measure each player has filled on the block they are aiming at. */
-    private static final Map<UUID, Progress> PROGRESS = new HashMap<>();
-    /** When each player's beam last hissed. */
-    private static final Map<UUID, Long> HUM = new HashMap<>();
 
     /** A player's beam on one block: which block, and how far it has melted into it. */
     private record Progress(long block, float measure) {
@@ -118,6 +125,15 @@ public final class LiquefactionFocus {
         }
     }
 
+    /** Shared registration identity for this focus's separate server and client sessions. */
+    public static final FocusBehavior<Unit, Unit> BEHAVIOR = new FocusBehavior<Unit, Unit>() {
+        @Override public FocusSyncedValue<Unit> serverState() { return FocusSyncedValue.none(); }
+        @Override public FocusSyncedValue<Unit> clientState() { return FocusSyncedValue.none(); }
+        @Override public BeamSession open(FocusServerContext<Unit, Unit> context) {
+            return new BeamSession();
+        }
+    };
+
     private LiquefactionFocus() {
     }
 
@@ -126,8 +142,10 @@ public final class LiquefactionFocus {
         // The rates and the critter cost come from the focus catalog; declaring them stops a datapack dropping them.
         FocusApi.requireParameters(ItemFocusLiquefaction.ID, Set.of("vis_discount", "break_speed", "enlarge"));
         FocusApi.requireActionCosts(ItemFocusLiquefaction.ID, Set.of(CRITTER));
-        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusLiquefaction.ID, FocusCompat.Aim.AIR,
-                FocusCompat.Mode.CHANNEL, true, ResearchRequirement.required(RESEARCH), RANGE, 0),
+        FocusBehaviorApi.register(ACTION, BEHAVIOR);
+        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusLiquefaction.ID),
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.channel(1),
+                ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
                 new dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler() {
                     @Override public HitResult target(dev.tc4port.thaumcraft.api.focus.behavior.FocusUseContext use,
                             dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages.Aim query) {
@@ -140,13 +158,10 @@ public final class LiquefactionFocus {
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (FocusCompat.phase(context)) {
+        return switch (context.gesture()) {
             case PRESS -> FocusActionResult.START_USING;
-            case STOP -> {
-                forget(context.player().getUUID());
-                yield FocusActionResult.SUCCESS;
-            }
-            case TICK -> tick(context, action);
+            case RELEASE -> FocusActionResult.SUCCESS;
+            case HOLD -> tick(context, action);
         };
     }
 
@@ -160,7 +175,7 @@ public final class LiquefactionFocus {
         BlockPos pos = hit.getBlockPos();
         if (!level.isLoaded(pos)) return dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.deny();
         var state = level.getBlockState(pos);
-        Progress last = PROGRESS.get(context.player().getUUID());
+        Progress last = session(context.player(), context.hand()).progress;
         Melt melt = melt(state);
         float hardness = melt == Melt.LAVA ? Melt.LAVA.hardness()
                 : (melt != Melt.NONE || isFlammable(level, pos, state)) ? 0.25F : 2.0F;
@@ -224,7 +239,7 @@ public final class LiquefactionFocus {
             target.setSecondsOnFire(BURN_SECONDS);
             target.hurt(level.damageSources().inFire(), 1.0F + 0.5F * potency);
             hum(context, level, target.position());
-            PROGRESS.remove(context.player().getUUID());
+            session(context.player(), context.hand()).progress = null;
         }
         return FocusActionResult.SUCCESS;
     }
@@ -243,7 +258,7 @@ public final class LiquefactionFocus {
         if (action == VisAction.EXECUTE) {
             drop.setItem(result.copyWithCount(input.getCount()));
             hum(context, level, drop.position());
-            PROGRESS.remove(context.player().getUUID());
+            session(context.player(), context.hand()).progress = null;
         }
         return FocusActionResult.SUCCESS;
     }
@@ -265,13 +280,13 @@ public final class LiquefactionFocus {
         float hardness = melt == Melt.LAVA ? Melt.LAVA.hardness()
                 : (melt != Melt.NONE || flammable) ? 0.25F : 2.0F;
         float speed = (float) context.parameter("break_speed");
-        UUID id = player.getUUID();
-        Progress last = PROGRESS.get(id);
+        BeamSession session = session(player, context.hand());
+        Progress last = session.progress;
         float measure = last != null && last.block() == pos.asLong() ? last.measure() : 0.0F;
         if (measure + speed < hardness) {
             if (action == VisAction.EXECUTE) {
                 hum(context, level, Vec3.atCenterOf(pos));
-                PROGRESS.put(id, new Progress(pos.asLong(), measure + speed));
+                session.progress = new Progress(pos.asLong(), measure + speed);
             }
             return FocusActionResult.SUCCESS;
         }
@@ -291,7 +306,7 @@ public final class LiquefactionFocus {
                         !neighbourStack.isEmpty() && !smelt(level, neighbourStack).isEmpty(),
                         isFlammable(level, neighbour, neighbourState));
             }
-            PROGRESS.remove(id);
+            session.progress = null;
             level.playSound(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, SoundEvents.FIRE_AMBIENT,
                     SoundSource.PLAYERS, 0.3F, 1.0F);
         }
@@ -441,18 +456,30 @@ public final class LiquefactionFocus {
     }
 
     private static void hum(FocusActionContext context, ServerLevel level, Vec3 at) {
-        UUID id = context.player().getUUID();
+        BeamSession session = session(context.player(), context.hand());
         long now = level.getGameTime();
-        Long next = HUM.get(id);
+        Long next = session.nextHum;
         if (next == null || now >= next) {
             level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRE_AMBIENT, SoundSource.PLAYERS, 0.3F, 1.0F);
-            HUM.put(id, now + HUM_TICKS);
+            session.nextHum = now + HUM_TICKS;
         }
     }
 
-    /** Forgets a player's beam state, so a disconnected player's measure does not linger. */
-    public static void forget(UUID player) {
-        PROGRESS.remove(player);
-        HUM.remove(player);
+    private static BeamSession session(ServerPlayer player, InteractionHand hand) {
+        return FocusBehaviorApi.session(player, hand, ACTION, BeamSession.class).orElseThrow();
+    }
+
+    /** Beam progress belongs to the installed hand, independently of whether a release has a valid target. */
+    private static final class BeamSession implements FocusServerSession<Unit, Unit> {
+        private Progress progress;
+        private Long nextHum;
+
+        @Override public void endUse(FocusEndReason reason) { clear(); }
+        @Override public void close() { clear(); }
+
+        private void clear() {
+            progress = null;
+            nextHum = null;
+        }
     }
 }

@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_liquefaction",
       "color": 16729156,
-      "per_tick": false,
       "base_cost": {
         "ignis": 40
       },
@@ -66,7 +65,9 @@
         }
       },
       "pipeline": {
+        "action_owner": "isorropia:liquefaction",
         "modules": [
+          "isorropia:liquefaction",
           "thaumcraft:focus_actions"
         ],
         "bindings": [

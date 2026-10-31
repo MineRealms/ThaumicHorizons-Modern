@@ -7,6 +7,12 @@ import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
+import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
@@ -76,16 +82,17 @@ public final class ContainmentFocus {
     public static void register() {
         // The two rates come from the focus catalog; declaring them stops a datapack from dropping either.
         FocusApi.requireParameters(ItemFocusContainment.ID, Set.of("first_hold", "hold_rate"));
-        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusContainment.ID, FocusCompat.Aim.AIR,
-                FocusCompat.Mode.CHANNEL, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
+        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusContainment.ID),
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.channel(1),
+                ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
                 ContainmentFocus::handle);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (FocusCompat.phase(context)) {
+        return switch (context.gesture()) {
             case PRESS -> FocusActionResult.START_USING;
-            case TICK -> tick(context, action);
-            case STOP -> FocusActionResult.PASS;
+            case HOLD -> tick(context, action);
+            case RELEASE -> FocusActionResult.PASS;
         };
     }
 

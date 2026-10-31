@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_illumination",
       "color": 14602026,
-      "per_tick": false,
       "base_cost": {
         "ignis": 100,
         "aer": 100

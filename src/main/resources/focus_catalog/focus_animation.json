@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_animation",
       "color": 15054592,
-      "per_tick": false,
       "base_cost": {
         "aer": 500,
         "terra": 500,

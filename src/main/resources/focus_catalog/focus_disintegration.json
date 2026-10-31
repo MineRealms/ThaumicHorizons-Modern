@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_disintegration",
       "color": 7930047,
-      "per_tick": false,
       "base_cost": {
         "ignis": 30,
         "perditio": 30,
@@ -67,7 +66,9 @@
         }
       },
       "pipeline": {
+        "action_owner": "isorropia:disintegration",
         "modules": [
+          "isorropia:disintegration",
           "thaumcraft:focus_actions"
         ],
         "bindings": [

@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_containment",
       "color": 29631,
-      "per_tick": true,
       "client_presentation": {
         "depth_texture": "isorropia:textures/item/focus_containment_depth.png",
         "depth_frame_count": 16
