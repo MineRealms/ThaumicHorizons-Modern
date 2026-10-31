@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20756",
-  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20756",
-  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/410",
+  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20757",
+  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20757",
+  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/415 (8ef9867c3bd254b04d6918e35b94861ad74be26f)",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756-api.jar",
-      "sha256": "1c2549dc1e5a574fe6cc845886744d1249caf542ddd56684539552ed4264c9fe"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20757/thaumcraft-neoforge-0.1.0-20757-api.jar",
+      "sha256": "a925c49212fc2844421a96d45791b79c145e1dfaa6a8b4e45cdbffe1a614dda9"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756-sources.jar",
-      "sha256": "da13e4b6682af9ed66153dcf34620b129c055b8d73556397ea160daa597eeb73"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20757/thaumcraft-neoforge-0.1.0-20757-sources.jar",
+      "sha256": "d9afce46bed3468cefd3d4beb429605d4480ebda8b523bc17838e6144282b924"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756.jar",
-      "sha256": "a0bb9f517b8dd3c33337f3fe1656719c0014b2fd4dd64289df1609e4666b9f46"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20757/thaumcraft-neoforge-0.1.0-20757.jar",
+      "sha256": "16012f5867f991ee4fa2d9cde1412573ff59800ea9d366573aca4798c50d312a"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20756/thaumcraft-neoforge-0.1.0-20756.pom",
-      "sha256": "619959d060c570b5df4094bece11f4e0402c36525cdcf49221186abe2dcce97a"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20757/thaumcraft-neoforge-0.1.0-20757.pom",
+      "sha256": "c1b6cd733dec32bacb350e8572c22e06953bea4374b292eef1dc767ca965bc4a"
     }
   ]
 }

@@ -1,21 +1,31 @@
 package fr.wind_blade.isorropia.common.focus;
 
+import com.mojang.datafixers.util.Unit;
 import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.aspect.AspectQueryApi;
 import dev.tc4port.thaumcraft.api.aspect.VisAction;
 import dev.tc4port.thaumcraft.api.damage.ThaumcraftDamageTypes;
-import dev.tc4port.thaumcraft.api.event.GameplayHooks;
 import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusBehavior;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusBehaviorApi;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusEndReason;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusServerContext;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusServerSession;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusSyncedValue;
 import dev.tc4port.thaumcraft.api.item.ThaumcraftItemApi;
+import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
-import dev.tc4port.thaumcraft.registry.CrystalEssences;
-import dev.tc4port.thaumcraft.registry.TCSounds;
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.common.items.ItemFocusDisintegration;
 import net.minecraft.core.BlockPos;
@@ -23,6 +33,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,11 +50,9 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * The disintegration focus, as Thaumic Horizons built it for Thaumcraft 4: a purple beam held on a target that
@@ -54,7 +63,7 @@ import java.util.UUID;
  *
  * <p>Only matter that carries aspects can be disintegrated; a plain block of dirt simply ignores the beam.
  * Harder matter takes longer: the beam fills a measure of the block's hardness before the block gives way.
- * The measure is kept per player and resets the moment the beam moves to a different block. The enlarge
+ * The measure is kept per held focus and resets the moment the beam moves to a different block. The enlarge
  * upgrade, once the aim point breaks, takes the whole shell of blocks around it as well.
  *
  * <p>Each block costs its vis and a creature costs the smaller critter rate instead.
@@ -76,14 +85,19 @@ public final class DisintegrationFocus {
     private static final long HUM_TICKS = 5L;
     /** How long the enervation upgrade slows a creature. */
     private static final int SLOW_TICKS = 40;
-    /** The measure each player has filled on the block they are aiming at. */
-    private static final Map<UUID, Progress> PROGRESS = new HashMap<>();
-    /** When each player's beam last crackled. */
-    private static final Map<UUID, Long> HUM = new HashMap<>();
 
     /** A player's beam on one block: which block, and how far it has eaten into it. */
     private record Progress(long block, float measure) {
     }
+
+    /** Shared registration identity for this focus's separate server and client sessions. */
+    public static final FocusBehavior<Unit, Unit> BEHAVIOR = new FocusBehavior<Unit, Unit>() {
+        @Override public FocusSyncedValue<Unit> serverState() { return FocusSyncedValue.none(); }
+        @Override public FocusSyncedValue<Unit> clientState() { return FocusSyncedValue.none(); }
+        @Override public BeamSession open(FocusServerContext<Unit, Unit> context) {
+            return new BeamSession(context);
+        }
+    };
 
     private DisintegrationFocus() {
     }
@@ -93,28 +107,56 @@ public final class DisintegrationFocus {
         // The rates and the critter cost come from the focus catalog; declaring them stops a datapack dropping them.
         FocusApi.requireParameters(ItemFocusDisintegration.ID, Set.of("vis_discount", "break_speed", "enlarge"));
         FocusApi.requireActionCosts(ItemFocusDisintegration.ID, Set.of(CRITTER));
-        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusDisintegration.ID, FocusCompat.Aim.AIR,
-                FocusCompat.Mode.CHANNEL, true, ResearchRequirement.required(RESEARCH), RANGE, 0),
-                DisintegrationFocus::handle);
+        FocusBehaviorApi.register(ACTION, BEHAVIOR);
+        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusDisintegration.ID),
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.channel(1),
+                ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
+                new dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler() {
+                    @Override public HitResult target(dev.tc4port.thaumcraft.api.focus.behavior.FocusUseContext use,
+                            dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages.Aim query) {
+                        return ordinaryTarget(query);
+                    }
+                    @Override public FocusActionResult handle(FocusActionContext context, VisAction action) {
+                        return DisintegrationFocus.handle(context, action);
+                    }
+                }, DisintegrationFocus::authorize);
     }
 
     private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        return switch (FocusCompat.phase(context)) {
+        return switch (context.gesture()) {
             case PRESS -> FocusActionResult.START_USING;
-            case STOP -> {
-                if (action == VisAction.EXECUTE) {
-                    stop(context);
-                }
-                yield FocusActionResult.SUCCESS;
-            }
-            case TICK -> tick(context, action);
+            case RELEASE -> FocusActionResult.SUCCESS;
+            case HOLD -> tick(context, action);
         };
+    }
+
+    private static dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization authorize(
+            dev.tc4port.thaumcraft.api.focus.action.FocusAuthorizationContext context) {
+        var allowed = dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.allow();
+        if (context.interaction().gesture() != dev.tc4port.thaumcraft.api.focus.action.FocusGesture.HOLD
+                || !(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return allowed;
+        var level = context.player().serverLevel();
+        BlockPos pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.deny();
+        var state = level.getBlockState(pos);
+        Progress last = session(context.player(), context.hand()).progress;
+        if (last == null || last.block() != pos.asLong()) return allowed;
+        float hardness = state.getDestroySpeed(level, pos);
+        if (hardness < 0 || last.measure() + context.parameter("break_speed") < hardness) return allowed;
+        List<BlockPos> positions = new ArrayList<>();
+        positions.add(pos);
+        if (context.parameter("enlarge") > 0) positions.addAll(disintegrableNeighbours(level, pos));
+        return FocusBlockAuthorization.check(context.player(), positions, pos, context.parameter("enlarge") > 0 ? 1 : 0);
     }
 
     /** One tick of the held beam. Simulation must not change anything, so all effects wait for EXECUTE. */
     private static FocusActionResult tick(FocusActionContext context, VisAction action) {
         HitResult hit = context.authoritativeHit();
         if (hit instanceof EntityHitResult entityHit) {
+            var entity = entityHit.getEntity();
+            if (entity.level() != context.player().level() || !entity.isAlive() || entity.isRemoved()
+                    || context.player().level().getEntity(entity.getId()) != entity) return FocusActionResult.PASS;
             if (entityHit.getEntity() instanceof LivingEntity target && target.isAlive()) {
                 return dissolve(context, action, target);
             }
@@ -123,33 +165,30 @@ public final class DisintegrationFocus {
             }
             return FocusActionResult.PASS;
         }
-        // The wand's own ray skips dropped items, which are not pickable; an essence-bearing one still counts.
-        ItemEntity drop = pointedEssence(context);
-        if (drop != null) {
-            return disintegrateItem(context, action, drop);
-        }
-        if (hit instanceof BlockHitResult blockHit) {
+        if (hit instanceof BlockHitResult blockHit && hit.getType() == HitResult.Type.BLOCK) {
             return tickBlock(context, action, blockHit.getBlockPos());
         }
         return FocusActionResult.PASS;
     }
 
     /** The nearest essence-bearing dropped item the beam points at, which the wand's pickable-only ray cannot see. */
-    private static ItemEntity pointedEssence(FocusActionContext context) {
-        ServerPlayer player = context.player();
+    private static HitResult ordinaryTarget(dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages.Aim query) {
+        var player = query.player();
         Vec3 start = player.getEyePosition();
-        Vec3 reach = player.getViewVector(1.0F).normalize().scale(RANGE);
+        Vec3 reach = player.getViewVector(1.0F).normalize().scale(query.range());
         Vec3 end = start.add(reach);
         HitResult block = player.level().clip(new ClipContext(start, end, ClipContext.Block.OUTLINE,
                 ClipContext.Fluid.NONE, player));
-        if (block.getType() != HitResult.Type.MISS) {
-            end = block.getLocation();
-        }
-        EntityHitResult found = ProjectileUtil.getEntityHitResult(player, start, end,
-                player.getBoundingBox().expandTowards(reach).inflate(1.0D),
+        if (block.getType() != HitResult.Type.MISS) end = block.getLocation();
+        var search = player.getBoundingBox().expandTowards(reach).inflate(1.0D);
+        EntityHitResult found = ProjectileUtil.getEntityHitResult(player, start, end, search,
+                candidate -> !candidate.isSpectator() && candidate.isPickable(), query.range() * query.range());
+        if (found != null) return found;
+        // Preserve the original pickable-entity priority over dropped items.
+        EntityHitResult drop = ProjectileUtil.getEntityHitResult(player, start, end, search,
                 candidate -> candidate instanceof ItemEntity item && disintegrable(item.getItem()),
-                (double) RANGE * RANGE);
-        return found != null && found.getEntity() instanceof ItemEntity item ? item : null;
+                query.range() * query.range());
+        return drop == null ? block : drop;
     }
 
     /**
@@ -157,7 +196,7 @@ public final class DisintegrationFocus {
      * essentia itself. Upstream's ray ignored crystal essence so the beam never eats the crystals it just made.
      */
     private static boolean disintegrable(ItemStack stack) {
-        return !stack.isEmpty() && stack.getItem() != CrystalEssences.item()
+        return !stack.isEmpty() && stack.getItem() != dev.tc4port.thaumcraft.api.ThaumcraftContent.item("crystal_essence")
                 && !AspectQueryApi.item(stack).amounts().isEmpty();
     }
 
@@ -175,7 +214,7 @@ public final class DisintegrationFocus {
             }
             target.hurt(ThaumcraftDamageTypes.dissolve(level), 0.5F + 0.25F * potency + 0.5F * enervation);
             hum(context, level, target.position());
-            PROGRESS.remove(context.player().getUUID());
+            session(context.player(), context.hand()).clearProgress();
         }
         return FocusActionResult.SUCCESS;
     }
@@ -199,7 +238,7 @@ public final class DisintegrationFocus {
             }
             drop.discard();
             hum(context, level, at);
-            PROGRESS.remove(context.player().getUUID());
+            session(context.player(), context.hand()).clearProgress();
         }
         return FocusActionResult.SUCCESS;
     }
@@ -208,6 +247,7 @@ public final class DisintegrationFocus {
     private static FocusActionResult tickBlock(FocusActionContext context, VisAction action, BlockPos pos) {
         ServerPlayer player = context.player();
         ServerLevel level = player.serverLevel();
+        if (!level.isLoaded(pos)) return FocusActionResult.PASS;
         BlockState state = level.getBlockState(pos);
         ItemStack blockStack = new ItemStack(state.getBlock());
         AspectAmounts aspects = blockStack.isEmpty() ? AspectAmounts.EMPTY
@@ -220,16 +260,14 @@ public final class DisintegrationFocus {
             return FocusActionResult.PASS;
         }
         float speed = (float) context.parameter("break_speed");
-        UUID id = player.getUUID();
+        BeamSession session = session(player, context.hand());
         int overlay = overlayId(player);
-        Progress last = PROGRESS.get(id);
+        Progress last = session.progress;
         if (last == null || last.block() != pos.asLong()) {
             // A new target: drop the old crack overlay and start the measure from scratch this tick.
-            if (last != null) {
-                level.destroyBlockProgress(overlay, BlockPos.of(last.block()), -1);
-            }
             if (action == VisAction.EXECUTE) {
-                PROGRESS.put(id, new Progress(pos.asLong(), 0.0F));
+                session.clearProgress();
+                session.progress = new Progress(pos.asLong(), 0.0F);
             }
             return FocusActionResult.SUCCESS;
         }
@@ -241,7 +279,7 @@ public final class DisintegrationFocus {
         if (measure + speed < hardness) {
             if (action == VisAction.EXECUTE) {
                 hum(context, level, Vec3.atCenterOf(pos));
-                PROGRESS.put(id, new Progress(pos.asLong(), measure + speed));
+                session.progress = new Progress(pos.asLong(), measure + speed);
             }
             return FocusActionResult.SUCCESS;
         }
@@ -261,8 +299,7 @@ public final class DisintegrationFocus {
                         : AspectQueryApi.placedBlock(neighbourStack, neighbourState);
                 disintegrateBlock(level, context, neighbour, neighbourState, neighbourAspects);
             }
-            level.destroyBlockProgress(overlay, pos, -1);
-            PROGRESS.remove(id);
+            session.clearProgress();
             hum(context, level, Vec3.atCenterOf(pos));
         }
         return FocusActionResult.SUCCESS;
@@ -275,9 +312,6 @@ public final class DisintegrationFocus {
             return;
         }
         ServerPlayer player = context.player();
-        if (GameplayHooks.fireBlockBreak(level, player.gameMode.getGameModeForPlayer(), player, pos, state).isCanceled()) {
-            return;
-        }
         for (Map.Entry<AspectId, Integer> entry : aspects.amounts().entrySet()) {
             spawnEssence(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, entry.getKey(), entry.getValue());
         }
@@ -295,6 +329,7 @@ public final class DisintegrationFocus {
                         continue;
                     }
                     BlockPos neighbour = pos.offset(x, y, z);
+                    if (!level.isLoaded(neighbour)) continue;
                     BlockState state = level.getBlockState(neighbour);
                     ItemStack stack = new ItemStack(state.getBlock());
                     if (!stack.isEmpty() && !AspectQueryApi.placedBlock(stack, state).amounts().isEmpty()) {
@@ -319,23 +354,44 @@ public final class DisintegrationFocus {
     }
 
     private static void hum(FocusActionContext context, ServerLevel level, Vec3 at) {
-        UUID id = context.player().getUUID();
+        BeamSession session = session(context.player(), context.hand());
         long now = level.getGameTime();
-        Long next = HUM.get(id);
+        Long next = session.nextHum;
         if (next == null || now >= next) {
-            level.playSound(null, at.x, at.y, at.z, TCSounds.ZAP.get(), SoundSource.PLAYERS, 0.3F, 1.0F);
-            HUM.put(id, now + HUM_TICKS);
+            level.playSound(null, at.x, at.y, at.z, dev.tc4port.thaumcraft.api.ThaumcraftContent.sound("zap"), SoundSource.PLAYERS, 0.3F, 1.0F);
+            session.nextHum = now + HUM_TICKS;
         }
     }
 
-    /** Clears a player's beam state and crack overlay when the wand is released. */
-    private static void stop(FocusActionContext context) {
-        ServerPlayer player = context.player();
-        UUID id = player.getUUID();
-        Progress previous = PROGRESS.remove(id);
-        HUM.remove(id);
-        if (previous != null) {
-            player.serverLevel().destroyBlockProgress(overlayId(player), BlockPos.of(previous.block()), -1);
+    private static BeamSession session(ServerPlayer player, InteractionHand hand) {
+        return FocusBehaviorApi.session(player, hand, ACTION, BeamSession.class).orElseThrow();
+    }
+
+    /** Beam progress belongs to the installed hand, independently of whether a release has a valid target. */
+    private static final class BeamSession implements FocusServerSession<Unit, Unit> {
+        private final ServerLevel level;
+        private final int overlay;
+        private Progress progress;
+        private Long nextHum;
+
+        private BeamSession(FocusServerContext<Unit, Unit> context) {
+            level = context.player().serverLevel();
+            overlay = overlayId(context.player());
+        }
+
+        @Override public void endUse(FocusEndReason reason) { clear(); }
+        @Override public void close() { clear(); }
+
+        private void clear() {
+            clearProgress();
+            nextHum = null;
+        }
+
+        private void clearProgress() {
+            if (progress != null) {
+                level.destroyBlockProgress(overlay, BlockPos.of(progress.block()), -1);
+                progress = null;
+            }
         }
     }
 

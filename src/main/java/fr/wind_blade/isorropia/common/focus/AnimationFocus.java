@@ -9,7 +9,20 @@ import dev.tc4port.thaumcraft.api.focus.FocusApi;
 import dev.tc4port.thaumcraft.api.focus.FocusUpgradeId;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionApi;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionContext;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionHandler;
 import dev.tc4port.thaumcraft.api.focus.action.FocusActionResult;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionSpec;
+import dev.tc4port.thaumcraft.api.focus.action.FocusActionTarget;
+import dev.tc4port.thaumcraft.api.focus.action.FocusCastMode;
+import dev.tc4port.thaumcraft.api.focus.action.FocusGesture;
+import dev.tc4port.thaumcraft.api.focus.action.FocusInput;
+import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
+import dev.tc4port.thaumcraft.api.presentation.ActionPresentationAudience;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusPredictionContext;
+import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseResult;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandCastStages;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandContinuation;
+import dev.tc4port.thaumcraft.api.wand.pipeline.WandPipelineApi;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import dev.tc4port.thaumcraft.api.research.ResearchRequirement;
 import fr.wind_blade.isorropia.Isorropia;
@@ -23,11 +36,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,38 +61,69 @@ import java.util.Set;
  * extend upgrade lengthens the span; the berserk upgrade turns the golem on anything but its caller, and the
  * detonation upgrade makes it burst when it falls.
  */
-public final class AnimationFocus {
+public final class AnimationFocus implements FocusActionHandler {
     public static final ResourceLocation ACTION = Isorropia.id("animation");
     public static final ResearchKey RESEARCH = ResearchKey.of(Isorropia.MODID, "animation");
-    /** How far the wand reaches for a block to animate. */
+    /** Initial action range; query supplies native block reach before AIM. */
     public static final int RANGE = 10;
     /** The upgrade that turns the golem on anything but its caller. */
     public static final FocusUpgradeId BERSERK = FocusUpgradeId.of(Isorropia.id("berserk"));
     /** The upgrade that makes the golem burst when it falls. */
     public static final FocusUpgradeId DETONATION = FocusUpgradeId.of(Isorropia.id("detonation"));
 
-    private AnimationFocus() {
+    AnimationFocus() {
     }
 
     /** Registers the cast with Thaumcraft's wand. Called on both sides, as the wand predicts on the client. */
     public static void register() {
         // The span comes from the focus catalog; declaring it stops a datapack from dropping it.
         FocusApi.requireParameters(ItemFocusAnimation.ID, Set.of("vis_discount", "duration"));
-        FocusActionApi.register(FocusCompat.spec(ACTION, ItemFocusAnimation.ID, FocusCompat.Aim.BLOCK,
-                FocusCompat.Mode.INSTANT, false, ResearchRequirement.required(RESEARCH), RANGE, 0),
-                AnimationFocus::handle);
+        WandPipelineApi.define(Isorropia.id("animation/predict"), WandCastStages.PREDICT, AnimationFocus::predict);
+        FocusActionApi.register(new FocusActionSpec(ACTION, new FocusActionTarget.Focus(ItemFocusAnimation.ID),
+                FocusInput.SECONDARY, Set.of(FocusTargetKind.AIR), FocusCastMode.INSTANT,
+                ResearchRequirement.required(RESEARCH), RANGE, 0, ActionPresentationAudience.PREDICTED),
+                new AnimationFocus(), AnimationFocus::authorize);
     }
 
-    private static FocusActionResult handle(FocusActionContext context, VisAction action) {
-        if (FocusCompat.phase(context) != FocusCompat.Phase.PRESS) {
+    @Override
+    public WandCastStages.Aim query(WandCastStages.Aim query) {
+        //? if forge {
+        return query.withRange(query.player().getBlockReach());
+        //?} else {
+        /*return query.withRange(query.player().blockInteractionRange());
+        *///?}
+    }
+
+    private static FocusUseResult predict(FocusPredictionContext request,
+            WandContinuation<FocusPredictionContext, FocusUseResult> next) {
+        if (request.input() != FocusInput.SECONDARY || request.use().gesture() != FocusGesture.PRESS
+                || request.use().target() != FocusTargetKind.AIR) {
+            return next.proceed(request);
+        }
+        var aimed = request.aim(ACTION);
+        if (!(aimed.use().hit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
+            return FocusUseResult.PASS;
+        }
+        var level = aimed.use().player().level();
+        var pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return FocusUseResult.PASS;
+        var state = level.getBlockState(pos);
+        if (!animatable(level, pos, state)) return FocusUseResult.PASS;
+        return next.proceed(aimed.withCost(primalCost(AnimatedBlockType.of(state).visCost)));
+    }
+
+    @Override
+    public FocusActionResult handle(FocusActionContext context, VisAction action) {
+        if (context.gesture() != FocusGesture.PRESS) {
             return FocusActionResult.PASS;
         }
-        if (!(context.authoritativeHit() instanceof BlockHitResult hit)) {
+        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) {
             return FocusActionResult.PASS;
         }
         ServerPlayer player = context.player();
         ServerLevel level = player.serverLevel();
         BlockPos pos = hit.getBlockPos();
+        if (!level.isLoaded(pos)) return FocusActionResult.PASS;
         BlockState state = level.getBlockState(pos);
         if (!animatable(level, pos, state)) {
             return FocusActionResult.PASS;
@@ -94,12 +141,16 @@ public final class AnimationFocus {
         return FocusActionResult.SUCCESS;
     }
 
-    /** Calls the block out of the world and sets the golem walking, honouring the block-break event first. */
+    private static dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization authorize(
+            dev.tc4port.thaumcraft.api.focus.action.FocusAuthorizationContext context) {
+        if (!(context.authoritativeHit() instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK)
+            return dev.tc4port.thaumcraft.api.focus.action.FocusAuthorization.allow();
+        return FocusBlockAuthorization.check(context.player(), List.of(hit.getBlockPos()), hit.getBlockPos(), 0);
+    }
+
+    /** Execute the already-authorized block animation. */
     private static void raise(FocusActionContext context, ServerLevel level, ServerPlayer player, BlockPos pos,
             BlockState state) {
-        if (GameplayHooks.fireBlockBreak(level, player.gameMode.getGameModeForPlayer(), player, pos, state).isCanceled()) {
-            return;
-        }
         EntityAnimatedBlock golem = EntitiesIS.ANIMATED_BLOCK.get().create(level);
         if (golem == null) {
             return;
@@ -113,7 +164,7 @@ public final class AnimationFocus {
     }
 
     /** Whether the block answers the call: plain, breakable matter, or one of the few solid transparent blocks. */
-    private static boolean animatable(ServerLevel level, BlockPos pos, BlockState state) {
+    private static boolean animatable(Level level, BlockPos pos, BlockState state) {
         if (state.isAir() || state.hasBlockEntity()) {
             return false;
         }

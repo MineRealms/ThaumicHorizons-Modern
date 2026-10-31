@@ -1,5 +1,11 @@
 package fr.wind_blade.isorropia.client;
 
+import com.mojang.datafixers.util.Unit;
+import dev.tc4port.thaumcraft.api.client.FocusBehaviorClientApi;
+import dev.tc4port.thaumcraft.api.client.FocusClientSession;
+import fr.wind_blade.isorropia.common.focus.DisintegrationFocus;
+import fr.wind_blade.isorropia.common.focus.LiquefactionFocus;
+
 import fr.wind_blade.isorropia.Isorropia;
 import fr.wind_blade.isorropia.client.model.JellyColors;
 import fr.wind_blade.isorropia.client.model.ModelJelly;
@@ -48,6 +54,13 @@ public final class ClientSetup {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            // Local action ownership needs a client session; beam progress remains server-owned.
+            FocusBehaviorClientApi.register(DisintegrationFocus.BEHAVIOR,
+                    context -> new FocusClientSession<Unit, Unit>() {});
+            FocusBehaviorClientApi.register(LiquefactionFocus.BEHAVIOR,
+                    context -> new FocusClientSession<Unit, Unit>() {});
+        });
         event.enqueueWork(() -> ItemProperties.register(ItemsIS.CAT.get(), Isorropia.id("cat"),
                 (stack, level, entity, seed) -> ItemCat.getType(stack).ordinal() / 100.0F));
         // Menu screens: registered here on 1.20.1; 1.21 only accepts them through RegisterMenuScreensEvent below.

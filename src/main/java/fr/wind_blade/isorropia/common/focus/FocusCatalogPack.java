@@ -1,9 +1,5 @@
 package fr.wind_blade.isorropia.common.focus;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import fr.wind_blade.isorropia.Isorropia;
 import net.minecraft.SharedConstants;
 import net.minecraft.network.chat.Component;
@@ -35,15 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Serves Isorropia's focus profiles from a pack of its own instead of the mod's {@code data} folder.
- *
- * <p>4R 20740 reads {@code per_tick} with a bare {@code get("per_tick").getAsBoolean()} and dies on a profile that
- * omits it, while 20744 rejects the field outright as an unknown key. One file cannot satisfy both, so the JSON is
- * stored once in its 20740 shape under {@code /focus_catalog} and this pack strips {@code per_tick} when the running
- * 4R is the newer generation. The profiles are deliberately kept out of {@code data/} so no other pack can hand the
- * wrong shape to 4R first.</p>
- */
+/** Serves Isorropia's bundled focus profiles as a server data pack. */
 public final class FocusCatalogPack implements PackResources {
     private static final String NAMESPACE = Isorropia.MODID;
     private static final String DIRECTORY = "thaumcraft/focus_catalog/";
@@ -192,15 +180,7 @@ public final class FocusCatalogPack implements PackResources {
             if (stream == null) {
                 throw new IllegalStateException("Missing bundled focus profile /focus_catalog/" + file);
             }
-            String json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-            if (!FocusCompat.modern()) {
-                return json.getBytes(StandardCharsets.UTF_8);
-            }
-            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-            for (JsonElement profile : root.getAsJsonArray("focus_profiles")) {
-                profile.getAsJsonObject().remove("per_tick");
-            }
-            return new Gson().toJson(root).getBytes(StandardCharsets.UTF_8);
+            return stream.readAllBytes();
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
         }

@@ -59,12 +59,17 @@ public class BlockSlot extends Block implements EntityBlock {
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
             BlockHitResult hit) {
     *///?}
-        if (level.isClientSide || !(level.getBlockEntity(pos) instanceof TileSlot slot)) {
-            return InteractionResult.SUCCESS;
-        }
+        return useWand(state, level, pos, player, hand, hit, level.isClientSide);
+    }
+
+    /** Shared admission for the native callback and the item-first wand pipeline. */
+    public InteractionResult useWand(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit, boolean client) {
+        if (!(level.getBlockEntity(pos) instanceof TileSlot slot)) return InteractionResult.PASS;
         ItemStack held = player.getItemInHand(hand);
         if (slot.hasKeystone()) {
             if (held.isEmpty()) {
+                if (client) return InteractionResult.SUCCESS;
                 int planeId = slot.removeKeystone();
                 if (slot.portalOpen()) {
                     slot.destroyPortal();
@@ -76,6 +81,7 @@ public class BlockSlot extends Block implements EntityBlock {
                 return InteractionResult.CONSUME;
             }
             if (!slot.portalOpen() && dev.tc4port.thaumcraft.api.wand.WandApi.view(held).isPresent()) {
+                if (client) return InteractionResult.SUCCESS;
                 slot.makePortal(held, player);
                 return InteractionResult.CONSUME;
             }
@@ -84,6 +90,7 @@ public class BlockSlot extends Block implements EntityBlock {
         if (held.getItem() instanceof ItemKeystone) {
             int planeId = ItemKeystone.boundPlane(held);
             if (planeId >= 0) {
+                if (client) return InteractionResult.SUCCESS;
                 slot.insertKeystone(planeId, ItemKeystone.boundColour(held));
                 held.shrink(1);
                 return InteractionResult.CONSUME;

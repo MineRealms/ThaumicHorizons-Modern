@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_animation",
       "color": 15054592,
-      "per_tick": false,
       "base_cost": {
         "aer": 500,
         "terra": 500,
@@ -60,14 +59,14 @@
         ],
         "bindings": [
           {
-            "id": "isorropia:actions/cast",
-            "stage": "thaumcraft:cast/step",
-            "handler": "thaumcraft:focus_actions",
-            "priority": -100
+            "id": "isorropia:prediction/animation",
+            "stage": "thaumcraft:cast/predict",
+            "handler": "isorropia:animation/predict",
+            "priority": -200
           },
           {
-            "id": "isorropia:actions/block",
-            "stage": "thaumcraft:use/before_formation",
+            "id": "isorropia:actions/cast",
+            "stage": "thaumcraft:cast/step",
             "handler": "thaumcraft:focus_actions",
             "priority": -100
           },

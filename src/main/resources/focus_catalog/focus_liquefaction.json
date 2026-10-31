@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_liquefaction",
       "color": 16729156,
-      "per_tick": false,
       "base_cost": {
         "ignis": 40
       },
@@ -66,19 +65,15 @@
         }
       },
       "pipeline": {
+        "action_owner": "isorropia:liquefaction",
         "modules": [
+          "isorropia:liquefaction",
           "thaumcraft:focus_actions"
         ],
         "bindings": [
           {
             "id": "isorropia:actions/cast",
             "stage": "thaumcraft:cast/step",
-            "handler": "thaumcraft:focus_actions",
-            "priority": -100
-          },
-          {
-            "id": "isorropia:actions/block",
-            "stage": "thaumcraft:use/before_formation",
             "handler": "thaumcraft:focus_actions",
             "priority": -100
           },

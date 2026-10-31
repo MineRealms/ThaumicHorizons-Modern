@@ -3,7 +3,6 @@
     {
       "focus": "isorropia:focus_containment",
       "color": 29631,
-      "per_tick": true,
       "client_presentation": {
         "depth_texture": "isorropia:textures/item/focus_containment_depth.png",
         "depth_frame_count": 16
@@ -70,12 +69,6 @@
           {
             "id": "isorropia:actions/cast",
             "stage": "thaumcraft:cast/step",
-            "handler": "thaumcraft:focus_actions",
-            "priority": -100
-          },
-          {
-            "id": "isorropia:actions/block",
-            "stage": "thaumcraft:use/before_formation",
             "handler": "thaumcraft:focus_actions",
             "priority": -100
           },

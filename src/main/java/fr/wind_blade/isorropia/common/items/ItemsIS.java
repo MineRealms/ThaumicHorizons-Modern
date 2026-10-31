@@ -157,6 +157,9 @@ public final class ItemsIS {
     public static final Supplier<ItemGolemPowder> GOLEM_POWDER = ITEMS.register("golem_powder",
             () -> new ItemGolemPowder(new Item.Properties()));
 
+    /** Native placement carrier for the illumination focus; omitted from the creative tab. */
+    public static final Supplier<BlockItem> LIGHT = blockItem("light", BlocksIS.LIGHT);
+
     private ItemsIS() {
     }
 
