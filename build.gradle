@@ -349,6 +349,7 @@ tasks.register('verifyPublicApiIntegrations', JavaCompile) {
         include '**/common/focus/FocusBlockAuthorization.java'
         include '**/common/blocks/BlockVisDynamo.java', '**/common/blocks/BlockEtherealShard.java'
         include '**/common/blocks/BlockTransductionAmplifier.java', '**/common/tiles/TileTransductionAmplifier.java'
+        include '**/common/tiles/TileVat.java', '**/common/events/CreatureEventHandler.java'
     })
     classpath = files(provider {
         sourceSets.main.compileClasspath.filter { !it.name.startsWith('thaumcraft-') }

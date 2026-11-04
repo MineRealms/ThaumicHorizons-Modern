@@ -1,7 +1,7 @@
 package fr.wind_blade.isorropia.common.events;
 
 import dev.tc4port.thaumcraft.api.essentia.EssentiaContainerApi;
-import dev.tc4port.thaumcraft.api.essentia.EssentiaJarView;
+import dev.tc4port.thaumcraft.api.ThaumcraftTags;
 import dev.tc4port.thaumcraft.api.player.PlayerKnowledgeApi;
 import dev.tc4port.thaumcraft.api.research.ResearchKey;
 import fr.wind_blade.isorropia.Isorropia;
@@ -37,7 +37,7 @@ public final class CreatureEventHandler {
         }
         BlockPos clicked = event.getPos();
         BlockPos pos = clicked.relative(face);
-        if (level.getBlockEntity(clicked) instanceof EssentiaJarView || !player.mayUseItemAt(pos, face, stack)
+        if (level.getBlockState(clicked).is(ThaumcraftTags.ESSENTIA_JARS) || !player.mayUseItemAt(pos, face, stack)
                 || !PlayerKnowledgeApi.view(player).completedResearch().contains(HANGING_LABEL_RESEARCH)) {
             return;
         }

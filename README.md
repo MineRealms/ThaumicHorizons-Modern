@@ -5,9 +5,9 @@
 （精华、注魔、扫描、多方块、法杖交互）以它的前身 **Thaumic Horizons（1.7.10，TC4）** 为准。
 
 ```text
-当前版本：1.0.3-alpha        mod id：isorropia
+当前版本：1.0.11-alpha        mod id：isorropia
 1.20.1：Forge 47.x（[47,48)）/ Java 17   ·   1.21.1：NeoForge / Java 21
-必需依赖：TC4R 0.1.0-20740（运行版本 4.2.3.5-*-port.0.1.0-20740）、Curios
+必需依赖：TC4R 0.1.0-20761（运行版本 4.2.3.5-*-port.0.1.0-20761）、Curios
 ```
 
 ## 玩法介绍
@@ -57,6 +57,11 @@ TH 式**工作傀儡**：独立 AI，右键安装 TC4R 核心与升级（每槽 
 - **KubeJS**：`ThaumicHorizons` 绑定，可用脚本直接增改注魔配方。
 
 ## 构建与开发
+
+治疗缸通过 `thaumcraft:infusion_pedestals` 方块标签识别基座，使用当前位置的原生
+item capability 的第 0 槽读取和抽取材料；每次操作重新查询能力，抽取失败时保留待消耗材料。
+挂签事件通过 `thaumcraft:essentia_jars` 标签避开源质罐，保留罐子自己的标签交互。
+附属和数据包可扩展这些本体标签，无需实现旧基座或源质罐标记接口。
 
 五种施法核心均在方块原生交互通过后进入 Item.use。赋活与照明保持原生方块交互距离，
 随后允许 AIM 改写目标；照明用已注册的隐藏灯物品调用原生 ItemStack.useOn，

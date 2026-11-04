@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20757",
-  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20757",
-  "source": "TC4R build containing https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/415 (8ef9867c3bd254b04d6918e35b94861ad74be26f)",
+  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20761",
+  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20761",
+  "source": "TC4R public infusion_pedestals and essentia_jars tags (thaumcraft-4-reconstructed PRs #434 and #435; source 37b2bc43f37f2e45fdbb584be761fea53745223b)",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20759/thaumcraft-neoforge-0.1.0-20759-api.jar",
-      "sha256": "e45e9f4cfee460cfc095ebe57f8540348230534c3127dab84c7369aedf5a6ce9"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761-api.jar",
+      "sha256": "853fcdc79579b406cc4ece6a5bc8695c0771175a8d32609a770e32f062467310"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20759/thaumcraft-neoforge-0.1.0-20759-sources.jar",
-      "sha256": "77bdb35ec88715644366c5bdc3704ad76dd599dbd6825c55116e0da33bb5a307"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761-sources.jar",
+      "sha256": "9b6465f3b20cd55ef0c638600dfb37d69de0a7c2e574624a13fbfe519f44201b"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20759/thaumcraft-neoforge-0.1.0-20759.jar",
-      "sha256": "fb5181f570681cade6039d1eb398b5286c544af4dab29041fbc88a416d5fbfb4"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761.jar",
+      "sha256": "2536b653cc4103880e28cd559866e0e071f6d600e546b46167802758cb1493f5"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20759/thaumcraft-neoforge-0.1.0-20759.pom",
-      "sha256": "f7afb505f09a0cdc36e0db3abfdd393113351a0c5cf30de8ed5938a6dd3098c0"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761.pom",
+      "sha256": "77198b7947b4eee13c4151c50b2cea37caed4ec9f13db6dce267e8084c348342"
     }
   ]
 }

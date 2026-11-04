@@ -1,6 +1,7 @@
 package fr.wind_blade.isorropia.common.tiles;
 
 import dev.tc4port.thaumcraft.api.ThaumcraftApiHelper;
+import dev.tc4port.thaumcraft.api.ThaumcraftTags;
 import dev.tc4port.thaumcraft.api.aspect.AspectAmounts;
 import dev.tc4port.thaumcraft.api.aspect.AspectContainerView;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
@@ -9,7 +10,6 @@ import dev.tc4port.thaumcraft.api.aspect.VisChannel;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaApi;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransferMode;
 import dev.tc4port.thaumcraft.api.essentia.EssentiaTransport;
-import dev.tc4port.thaumcraft.api.machine.InfusionPedestal;
 import dev.tc4port.thaumcraft.api.node.VisNetworkApi;
 import fr.wind_blade.isorropia.common.IsorropiaAspects;
 import fr.wind_blade.isorropia.common.blocks.BlockCurativeVat;
@@ -51,6 +51,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -503,18 +504,26 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         if (components.isEmpty()) {
             return true;
         }
-        ItemStack stack = components.remove(0);
-        consumed.add(stack);
+        ItemStack stack = components.get(0);
         for (BlockPos pos : pedestals(level)) {
-            if (level.getBlockEntity(pos) instanceof InfusionPedestal pedestal
-                    && !pedestal.item().isEmpty() && ItemStack.isSameItemSameTags(pedestal.item(), stack)) {
+            IItemHandler inventory = pedestalInventory(level, pos);
+            if (inventory == null) {
+                continue;
+            }
+            ItemStack offered = inventory.extractItem(0, 1, true);
+            if (!offered.isEmpty() && ItemStack.isSameItemSameTags(offered, stack)) {
+                ItemStack taken = inventory.extractItem(0, 1, false);
+                if (taken.isEmpty()) {
+                    continue;
+                }
+                components.remove(0);
+                consumed.add(taken.copy());
                 // The ingredient leaves the pedestal for the vat, which is what the client draws flying.
                 ClientFxPacket.ingredientFlight(level, Vec3.atCenterOf(pos).add(0.0, 0.5, 0.0),
                         Vec3.atCenterOf(worldPosition).add(0.0, -0.5, 0.0));
                 // The pedestal throws off the same debris as a broken block, as the original's packet did.
                 level.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, pos,
                         Block.getId(level.getBlockState(pos)));
-                pedestal.clearContent();
                 break;
             }
         }
@@ -628,14 +637,17 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         List<BlockPos> found = pedestals(level);
         for (int attempt = 0; attempt < 20 && !found.isEmpty(); attempt++) {
             BlockPos pos = found.get(level.random.nextInt(found.size()));
-            if (!(level.getBlockEntity(pos) instanceof InfusionPedestal pedestal) || pedestal.item().isEmpty()) {
+            IItemHandler inventory = pedestalInventory(level, pos);
+            if (inventory == null || inventory.getStackInSlot(0).isEmpty()) {
                 continue;
             }
-            ItemStack stack = pedestal.item();
+            ItemStack stack = inventory.extractItem(0, inventory.getStackInSlot(0).getCount(), false);
+            if (stack.isEmpty()) {
+                continue;
+            }
             if (drop) {
                 level.addFreshEntity(new ItemEntity(level, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, stack.copy()));
             }
-            pedestal.clearContent();
             // Upstream's arc leaps up off the robbed pedestal.
             ClientFxPacket.arc(level, Vec3.atCenterOf(pos), Vec3.atCenterOf(pos.above()));
             return;
@@ -829,12 +841,28 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
 
     // ---------------------------------------------------------------- pedestals
 
+    /** Re-query the current provider; a tag never grants inventory access by itself. */
+    @Nullable
+    private IItemHandler pedestalInventory(ServerLevel level, BlockPos pos) {
+        if (!level.hasChunkAt(pos) || !level.getBlockState(pos).is(ThaumcraftTags.INFUSION_PEDESTALS)) {
+            return null;
+        }
+        //? if forge {
+        BlockEntity entity = level.getBlockEntity(pos);
+        IItemHandler inventory = entity == null ? null
+                : entity.getCapability(net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER).resolve().orElse(null);
+        //?} else {
+        /*IItemHandler inventory = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.BLOCK, pos, null);
+        *///?}
+        return inventory == null || inventory.getSlots() == 0 ? null : inventory;
+    }
+
     private List<BlockPos> pedestals(ServerLevel level) {
         if (pedestals == null) {
             List<BlockPos> found = new ArrayList<>();
             for (BlockPos pos : BlockPos.betweenClosed(worldPosition.offset(-PEDESTAL_RANGE, -PEDESTAL_RANGE_Y, -PEDESTAL_RANGE),
                     worldPosition.offset(PEDESTAL_RANGE, PEDESTAL_RANGE_Y, PEDESTAL_RANGE))) {
-                if (level.getBlockEntity(pos) instanceof InfusionPedestal) {
+                if (pedestalInventory(level, pos) != null) {
                     found.add(pos.immutable());
                 }
             }
@@ -849,8 +877,12 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         }
         List<ItemStack> items = new ArrayList<>();
         for (BlockPos pos : pedestals(server)) {
-            if (server.getBlockEntity(pos) instanceof InfusionPedestal pedestal && !pedestal.item().isEmpty()) {
-                items.add(pedestal.item().copyWithCount(1));
+            IItemHandler inventory = pedestalInventory(server, pos);
+            if (inventory != null) {
+                ItemStack item = inventory.extractItem(0, 1, true);
+                if (!item.isEmpty()) {
+                    items.add(item.copyWithCount(1));
+                }
             }
         }
         return items;
