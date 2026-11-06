@@ -41,6 +41,8 @@ public final class IsorropiaNetwork {
                 OpenFingersPacket::encode, OpenFingersPacket::decode, OpenFingersPacket::handle);
         register(SyncInfusionRecipesPacket.class, NetworkDirection.PLAY_TO_CLIENT,
                 SyncInfusionRecipesPacket::encode, SyncInfusionRecipesPacket::decode, SyncInfusionRecipesPacket::handle);
+        register(ToggleInfusionPacket.class, NetworkDirection.PLAY_TO_SERVER,
+                ToggleInfusionPacket::encode, ToggleInfusionPacket::decode, ToggleInfusionPacket::handle);
     }
 
     public static <M> void register(Class<M> type, NetworkDirection direction, BiConsumer<M, FriendlyByteBuf> encoder,
@@ -59,6 +61,7 @@ public final class IsorropiaNetwork {
             registrar.playToServer(LensChangePacket.TYPE, LensChangePacket.CODEC, LensChangePacket::handle);
             registrar.playToServer(OpenFingersPacket.TYPE, OpenFingersPacket.CODEC, OpenFingersPacket::handle);
             registrar.playToClient(SyncInfusionRecipesPacket.TYPE, SyncInfusionRecipesPacket.CODEC, SyncInfusionRecipesPacket::handle);
+            registrar.playToServer(ToggleInfusionPacket.TYPE, ToggleInfusionPacket.CODEC, ToggleInfusionPacket::handle);
         });
     }
     *///?}
@@ -73,6 +76,14 @@ public final class IsorropiaNetwork {
     }
 
     public static void sendToServer(OpenFingersPacket packet) {
+        //? if forge {
+        CHANNEL.sendToServer(packet);
+        //?} else {
+        /*net.neoforged.neoforge.network.PacketDistributor.sendToServer(packet);
+        *///?}
+    }
+
+    public static void sendToServer(ToggleInfusionPacket packet) {
         //? if forge {
         CHANNEL.sendToServer(packet);
         //?} else {

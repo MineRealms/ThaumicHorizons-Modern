@@ -54,7 +54,8 @@ public final class SelfInfusions {
             hold(player, MobEffects.REGENERATION, 0);
         }
         if (data.hasSelfInfusion(DIAMOND_SKIN)) {
-            hold(player, MobEffects.DAMAGE_RESISTANCE, 1);
+            // Upstream granted Resistance I, not II.
+            hold(player, MobEffects.DAMAGE_RESISTANCE, 0);
         }
         if (data.hasSelfInfusion(SILVER_HEART)) {
             decayHarmfulEffects(player);

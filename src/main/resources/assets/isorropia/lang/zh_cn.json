@@ -502,5 +502,7 @@
   "isorropia.self_infusion.warped_tumor": "扭曲肿瘤",
   "isorropia.self_infusion.spider_climb": "蛛行",
   "isorropia.self_infusion.chameleon_skin": "变色龙之皮",
-  "isorropia.self_infusion.thaumium_fists": "神秘金属之拳"
+  "isorropia.self_infusion.thaumium_fists": "神秘金属之拳",
+  "key.isorropia.climb": "蛛行开关",
+  "key.isorropia.chameleon": "变色龙皮肤开关"
 }

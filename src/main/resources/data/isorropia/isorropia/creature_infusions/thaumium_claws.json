@@ -1,0 +1,30 @@
+{
+  "kind": "curative",
+  "research": "isorropia:creatureinfusions",
+  "target": {
+    "type": "any"
+  },
+  "components": [
+    {
+      "item": "thaumcraft:thaumium_sword"
+    },
+    {
+      "item": "thaumcraft:thaumium_sword"
+    }
+  ],
+  "modifiers": [
+    {
+      "attribute": "minecraft:generic.attack_damage",
+      "uuid": "6c1d1a52-8f0b-4c0e-9b7a-31f4d2e6a9c3",
+      "name": "isorropia:thaumium_claws",
+      "amount": 2.0,
+      "operation": "addition"
+    }
+  ],
+  "aspects": {
+    "thaumcraft:telum": 12,
+    "thaumcraft:metallum": 8,
+    "thaumcraft:praecantatio": 8
+  },
+  "instability": 3
+}

@@ -502,5 +502,7 @@
   "isorropia.self_infusion.warped_tumor": "Warped Tumor",
   "isorropia.self_infusion.spider_climb": "Spider Climb",
   "isorropia.self_infusion.chameleon_skin": "Chameleon Skin",
-  "isorropia.self_infusion.thaumium_fists": "Thaumium Fists"
+  "isorropia.self_infusion.thaumium_fists": "Thaumium Fists",
+  "key.isorropia.climb": "Toggle Spider Climb",
+  "key.isorropia.chameleon": "Toggle Chameleon Skin"
 }

@@ -105,6 +105,7 @@ public class TileVortexStabilizer extends BlockEntity {
                 hitPos = pos.relative(facing, RANGE);
             }
         }
+        boolean synced = false;
         if (hitPos != null && !hitPos.equals(stabilizer.targetPos)) {
             // The beam moved: release the old target, then take the new one in the same tick.
             if (stabilizer.hasTarget) {
@@ -123,9 +124,16 @@ public class TileVortexStabilizer extends BlockEntity {
             }
             stabilizer.targetPos = hitPos;
             stabilizer.syncToClients();
+            synced = true;
         } else if (hitPos == null && stabilizer.hasTarget) {
             stabilizer.reHungrifyTarget();
             stabilizer.hasTarget = false;
+            stabilizer.syncToClients();
+            synced = true;
+        }
+        // The power state drives the beam on the client; when only that changed the scan above found the
+        // same endpoint and would otherwise leave the client on the old state.
+        if (powerChanged && !synced) {
             stabilizer.syncToClients();
         }
     }

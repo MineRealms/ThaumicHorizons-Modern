@@ -71,9 +71,11 @@ public class RenderVortexStabilizer implements BlockEntityRenderer<TileVortexSta
             Direction facing, float red, float green, float blue) {
         BlockPos pos = stabilizer.getBlockPos();
         BlockPos end = stabilizer.beamEnd();
-        Vec3 from = Vec3.atCenterOf(pos)
-                .add(facing.getStepX() * 0.5, facing.getStepY() * 0.5, facing.getStepZ() * 0.5);
-        Vec3 to = Vec3.atCenterOf(end);
+        // Block entity poses are already translated to the block, so the ribbon is built in local space
+        // (the other beams in this mod do the same); world coordinates would draw it a block-width away.
+        Vec3 from = new Vec3(0.5 + facing.getStepX() * 0.5, 0.5 + facing.getStepY() * 0.5,
+                0.5 + facing.getStepZ() * 0.5);
+        Vec3 to = Vec3.atCenterOf(end).subtract(Vec3.atLowerCornerOf(pos));
         float distance = (float) from.distanceTo(to);
         if (distance < 1.0E-3F) {
             return;
