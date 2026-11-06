@@ -30,9 +30,14 @@ public final class CreatureAbilities {
     public static final ResourceLocation PORTABILITY = id("portability");
     public static final ResourceLocation ENDER_HEART = id("ender_heart");
     public static final ResourceLocation SHOCK_SKIN = id("shock_skin");
+    public static final ResourceLocation RUNIC_HIDE = id("runic_hide");
+    public static final ResourceLocation ELDRITCH_FANGS = id("eldritch_fangs");
 
     private static final int SHEAR_INTERVAL = 100;
     private static final int BLOOD_INTERVAL = 50;
+    private static final int RUNIC_CAPACITY = 6;
+    private static final int RUNIC_RECHARGE = 100;
+    private static final String NBT_RUNIC = "isorropia$runic";
 
     private CreatureAbilities() {
     }
@@ -49,6 +54,50 @@ public final class CreatureAbilities {
         if (data.hasInfusion(AWAKENED_BLOOD) && entity.tickCount % BLOOD_INTERVAL == 0
                 && entity.getHealth() < entity.getMaxHealth()) {
             entity.heal(1.0F);
+        }
+        if (data.hasInfusion(RUNIC_HIDE)) {
+            // TH's runic creature: six charges, one back every five seconds.
+            net.minecraft.nbt.CompoundTag tag = entity.getPersistentData();
+            if (!tag.contains(NBT_RUNIC)) {
+                tag.putInt(NBT_RUNIC, RUNIC_CAPACITY);
+            } else if (entity.tickCount % RUNIC_RECHARGE == 0 && tag.getInt(NBT_RUNIC) < RUNIC_CAPACITY) {
+                tag.putInt(NBT_RUNIC, tag.getInt(NBT_RUNIC) + 1);
+            }
+        }
+    }
+
+    /** TH's runic hide: charges soak damage point for point; starvation, drowning and wither were exempt. */
+    public static void absorbRunic(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source,
+            float amount, java.util.function.Consumer<Float> remaining) {
+        net.minecraft.nbt.CompoundTag tag = entity.getPersistentData();
+        int charge = tag.getInt(NBT_RUNIC);
+        if (charge <= 0) {
+            return;
+        }
+        if (source.is(net.minecraft.world.damagesource.DamageTypes.STARVE)
+                || source.is(net.minecraft.world.damagesource.DamageTypes.DROWN)
+                || source.is(net.minecraft.world.damagesource.DamageTypes.WITHER)
+                || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
+            return;
+        }
+        if (charge > amount) {
+            tag.putInt(NBT_RUNIC, charge - (int) amount);
+            remaining.accept(0.0F);
+        } else {
+            tag.putInt(NBT_RUNIC, 0);
+            remaining.accept(amount - charge);
+        }
+    }
+
+    /** TH's eldritch fangs: a bite from the infused creature poisons whatever it hits. */
+    public static void fangsPoison(LivingEntity attacker, LivingEntity victim) {
+        if (attacker == victim) {
+            return;
+        }
+        LivingData data = LivingData.get(attacker).orElse(null);
+        if (data != null && data.hasInfusion(ELDRITCH_FANGS)) {
+            victim.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    net.minecraft.world.effect.MobEffects.POISON, 40, 0, false, true, true));
         }
     }
 

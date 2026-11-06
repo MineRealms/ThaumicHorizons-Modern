@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20761",
-  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20761",
+  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20762",
+  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20762",
   "source": "TC4R public infusion_pedestals and essentia_jars tags (thaumcraft-4-reconstructed PRs #434 and #435; source 37b2bc43f37f2e45fdbb584be761fea53745223b)",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761-api.jar",
-      "sha256": "853fcdc79579b406cc4ece6a5bc8695c0771175a8d32609a770e32f062467310"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20762/thaumcraft-neoforge-0.1.0-20762-api.jar",
+      "sha256": "1294565f4c38e447d47a163f2123a943b44fd382e371ff36aa7256818c059656"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761-sources.jar",
-      "sha256": "9b6465f3b20cd55ef0c638600dfb37d69de0a7c2e574624a13fbfe519f44201b"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20762/thaumcraft-neoforge-0.1.0-20762-sources.jar",
+      "sha256": "77bdb35ec88715644366c5bdc3704ad76dd599dbd6825c55116e0da33bb5a307"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761.jar",
-      "sha256": "2536b653cc4103880e28cd559866e0e071f6d600e546b46167802758cb1493f5"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20762/thaumcraft-neoforge-0.1.0-20762.jar",
+      "sha256": "576b2939b36097d8de09e8617ab1e025541f4b6282ccbcab97bdfcebc5130423"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20761/thaumcraft-neoforge-0.1.0-20761.pom",
-      "sha256": "77198b7947b4eee13c4151c50b2cea37caed4ec9f13db6dce267e8084c348342"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20762/thaumcraft-neoforge-0.1.0-20762.pom",
+      "sha256": "45bdf1bc3cb5f878e0987c372b76e46fb2e3c6e1a73fc1e8e879224a807d07ef"
     }
   ]
 }

@@ -132,6 +132,18 @@ public final class IsorropiaEvents {
         if (data == null) {
             return;
         }
+        // A runic hide soaks the blow before anything else looks at it.
+        if (data.hasInfusion(CreatureAbilities.RUNIC_HIDE)) {
+            CreatureAbilities.absorbRunic(entity, event.getSource(), event.getAmount(), event::setAmount);
+            if (event.getAmount() <= 0.0F) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+        // Eldritch fangs poison whatever the infused creature bites.
+        if (event.getSource().getEntity() instanceof LivingEntity attacker) {
+            CreatureAbilities.fangsPoison(attacker, entity);
+        }
         if (data.hasSelfInfusion(SelfInfusions.SILVER_HEART) && isTaint(event.getSource())) {
             event.setCanceled(true);
             return;

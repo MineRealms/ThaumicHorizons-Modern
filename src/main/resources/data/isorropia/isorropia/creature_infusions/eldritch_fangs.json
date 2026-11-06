@@ -1,0 +1,37 @@
+{
+  "kind": "curative",
+  "research": "isorropia:creatureinfusions",
+  "target": {
+    "type": "any"
+  },
+  "components": [
+    {
+      "item": "thaumcraft:thaumium_ingot"
+    },
+    {
+      "item": "thaumcraft:shimmerleaf"
+    },
+    {
+      "item": "thaumcraft:thaumium_ingot"
+    },
+    {
+      "item": "thaumcraft:shimmerleaf"
+    }
+  ],
+  "modifiers": [
+    {
+      "attribute": "minecraft:generic.attack_damage",
+      "uuid": "9a2f1b64-3d5c-4e18-8b02-7c6e9d15a4f7",
+      "name": "isorropia:eldritch_fangs",
+      "amount": 1.0,
+      "operation": "addition"
+    }
+  ],
+  "aspects": {
+    "thaumcraft:alienis": 8,
+    "thaumcraft:telum": 16,
+    "thaumcraft:metallum": 16,
+    "thaumcraft:venenum": 32
+  },
+  "instability": 8
+}

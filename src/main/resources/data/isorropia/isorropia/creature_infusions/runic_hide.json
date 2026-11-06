@@ -1,0 +1,28 @@
+{
+  "kind": "curative",
+  "research": "isorropia:creatureinfusions",
+  "target": {
+    "type": "any"
+  },
+  "components": [
+    {
+      "item": "minecraft:diamond"
+    },
+    {
+      "item": "thaumcraft:thaumium_ingot"
+    },
+    {
+      "item": "thaumcraft:quicksilver"
+    },
+    {
+      "item": "thaumcraft:inkwell"
+    }
+  ],
+  "aspects": {
+    "thaumcraft:tutamen": 16,
+    "thaumcraft:praecantatio": 32,
+    "thaumcraft:potentia": 16,
+    "thaumcraft:corpus": 8
+  },
+  "instability": 7
+}
