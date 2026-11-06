@@ -328,11 +328,18 @@ public class BloodInfuserScreen extends AbstractContainerScreen<BloodInfuserMenu
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (super.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
+        // The dial is checked before the container screen sees the click: vanilla consumes clicks in some
+        // empty areas, and TH's own screen always ran its widgets regardless.
         int x = (int) mouseX - this.leftPos;
         int y = (int) mouseY - this.topPos;
+        if (this.clickDial(x, y, mouseX, mouseY)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    /** TH's widget hit tests; coordinates are GUI-relative. */
+    private boolean clickDial(int x, int y, double mouseX, double mouseY) {
         int clickX = x - 38;
         int clickY = y - 57;
         if (clickX >= 0 && clickY >= 0 && clickX <= 6 && clickY <= 6) {
