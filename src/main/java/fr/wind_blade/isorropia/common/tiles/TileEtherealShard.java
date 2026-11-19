@@ -265,9 +265,10 @@ public class TileEtherealShard extends BlockEntity implements AuraNodeView {
 
         var balance = storage.snapshot();
         List<AspectId> eligible = new ArrayList<>();
-        for (AspectId channel : VisCompat.PRIMALS) {
+        for (var limit : balance.capacityCentivis().entrySet()) {
+            AspectId channel = limit.getKey();
             if (stored(channel) > (preserve ? 1 : 0)
-                    && balance.currentCentivis().getOrDefault(channel, 0) < balance.capacityCentivis().getOrDefault(channel, 0)) {
+                    && balance.currentCentivis().getOrDefault(channel, 0) < limit.getValue()) {
                 eligible.add(channel);
             }
         }
