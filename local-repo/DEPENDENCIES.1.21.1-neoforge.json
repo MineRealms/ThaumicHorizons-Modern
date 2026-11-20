@@ -1,23 +1,23 @@
 {
-  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20776",
-  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20776",
-  "source": "TC4R native Vis capabilities (thaumcraft-4-reconstructed PR #437; source afd7501ea95038e8de78d36309af3f26be9dacfc; build 20261119T132753Z-283e1d)",
+  "coordinate": "dev.tc4port:thaumcraft-neoforge:0.1.0-20777",
+  "runtime_version": "4.2.3.5-1.21.1-port.0.1.0-20777",
+  "source": "TC4R vis cost sources, worktable flow and aspect-keyed Vis (thaumcraft-4-reconstructed build 20777)",
   "artifacts": [
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20776/thaumcraft-neoforge-0.1.0-20776-api.jar",
-      "sha256": "c1fcda962c4abf36e901a62034ed4a29c8664e1866bd4ac54a91d6f3d9c57c96"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20777/thaumcraft-neoforge-0.1.0-20777-api.jar",
+      "sha256": "e0f5072c7b1f29df652457c7a745e2fb1c8f30150f9c66dea3b48a84aab974cd"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20776/thaumcraft-neoforge-0.1.0-20776-sources.jar",
-      "sha256": "9d85f02d26255c2362e480c34bf373fdeb92eddf7644831ae20d7de67e0845eb"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20777/thaumcraft-neoforge-0.1.0-20777-sources.jar",
+      "sha256": "ca3548e5e7084c438e3ad164591d40e23ad3cd98a0bc9b17d523de6a3ad853c8"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20776/thaumcraft-neoforge-0.1.0-20776.jar",
-      "sha256": "55ba0ac7e48c0ab0a4bda2fd3267be7e2f430826cb18c8983a8e2ed3ec42f178"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20777/thaumcraft-neoforge-0.1.0-20777.jar",
+      "sha256": "9e5123fe1459fdc42377f535c845431e7a8929c2a617731745606ccc80a7454d"
     },
     {
-      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20776/thaumcraft-neoforge-0.1.0-20776.pom",
-      "sha256": "2f9ecec638f31b0f673d14e94b9563ac42193a99d1d5f1b8ececb468b4a1a2a2"
+      "path": "dev/tc4port/thaumcraft-neoforge/0.1.0-20777/thaumcraft-neoforge-0.1.0-20777.pom",
+      "sha256": "4dc0e8baae3995f2df9a38a3bfb522b7946bd61128ca25991912eeaf72f41e3c"
     }
   ]
 }

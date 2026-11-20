@@ -4,7 +4,7 @@ import dev.tc4port.thaumcraft.api.aspect.BuiltinAspects;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.ThaumcraftApiHelper;
 import dev.tc4port.thaumcraft.api.aspect.VisAction;
-import dev.tc4port.thaumcraft.api.aspect.VisConsumptionContext;
+import dev.tc4port.thaumcraft.api.aspect.VisCostSource;
 import dev.tc4port.thaumcraft.api.aspect.VisCost;
 import dev.tc4port.thaumcraft.registry.TCBlocks;
 import dev.tc4port.thaumcraft.registry.TCSounds;
@@ -112,7 +112,7 @@ public class TileSlot extends BlockEntity {
         // TH asked the wand whether it could pay before validating the wall, and only charged once the portal was cut.
         // A successful simulate reports affordable, not consumed.
         if (!ThaumcraftApiHelper.consumeVisFromWand(wand, player, cost, VisAction.SIMULATE,
-                VisConsumptionContext.CRAFTING).affordable()) {
+                VisCostSource.FORMATION).affordable()) {
             return;
         }
         boolean alignedX;
@@ -158,7 +158,7 @@ public class TileSlot extends BlockEntity {
             PocketGateways.makePortal(pocket, store, this.planeId, which, this.worldPosition.getX(),
                     this.worldPosition.getY() - 2, this.worldPosition.getZ(), server.dimension());
         }
-        ThaumcraftApiHelper.consumeVisFromWand(wand, player, cost, VisAction.EXECUTE, VisConsumptionContext.CRAFTING);
+        ThaumcraftApiHelper.consumeVisFromWand(wand, player, cost, VisAction.EXECUTE, VisCostSource.FORMATION);
         this.level.playSound(null, this.worldPosition.getX() + 0.5, this.worldPosition.getY() + 0.5,
                 this.worldPosition.getZ() + 0.5, TCSounds.WAND.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
         sync();

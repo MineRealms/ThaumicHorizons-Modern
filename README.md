@@ -5,9 +5,9 @@
 （精华、注魔、扫描、多方块、法杖交互）以它的前身 **Thaumic Horizons（1.7.10，TC4）** 为准。
 
 ```text
-当前版本：1.0.14-alpha        mod id：isorropia
+当前版本：1.0.15-alpha        mod id：isorropia
 1.20.1：Forge 47.x（[47,48)）/ Java 17   ·   1.21.1：NeoForge / Java 21
-必需依赖：TC4R 0.1.0-20776（运行版本 4.2.3.5-*-port.0.1.0-20776）、Curios
+必需依赖：TC4R 0.1.0-20777（运行版本 4.2.3.5-*-port.0.1.0-20777）、Curios
 ```
 
 ## 玩法介绍
@@ -86,7 +86,7 @@ TC4R 是用户提供的本地构建，**不入库**：按 `local-repo/DEPENDENCI
 依赖 [TC4R 的充能节点输出 API](https://github.com/xiuyi-ink/thaumcraft-4-reconstructed/pull/410)：
 法杖持续使用通过 `WandBlockUseApi` 注册，转导放大器通过 `EnergizedNodeEvent.Output` 提供每台 +10 的实时加成，
 停用、拆除或卸载后撤销贡献；不再向 TC4R 注入 Mixin。
-法杖识别和魔力转移使用 TC4R 20776 的原生物品 capability，发电机和以太碎片保留原有六原质顺序。
+法杖识别和魔力转移使用 TC4R 20777 的原生物品 capability，发电机和以太碎片保留原有六原质顺序。
 
 ## 当前进度
 

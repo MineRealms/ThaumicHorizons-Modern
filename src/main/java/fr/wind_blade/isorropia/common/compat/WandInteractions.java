@@ -4,6 +4,7 @@ import dev.tc4port.thaumcraft.api.aspect.BuiltinAspects;
 import dev.tc4port.thaumcraft.api.aspect.AspectId;
 import dev.tc4port.thaumcraft.api.ThaumcraftApiHelper;
 import dev.tc4port.thaumcraft.api.aspect.VisAction;
+import dev.tc4port.thaumcraft.api.aspect.VisCostSource;
 import dev.tc4port.thaumcraft.api.focus.action.FocusTargetKind;
 import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseContext;
 import dev.tc4port.thaumcraft.api.focus.behavior.FocusUseResult;
@@ -81,10 +82,10 @@ public final class WandInteractions {
         if (VatStructure.isVatBlock(level.getBlockState(hit.getBlockPos()))) return next.proceed(use);
         BlockPos master = VatStructure.findUnformed(level, hit.getBlockPos()).orElse(null);
         if (master == null) return next.proceed(use);
-        var cost = WandVis.craftingCost(use.carrier(), use.player(), VAT_COST);
+        var cost = WandVis.craftingCost(use.carrier(), use.player(), VAT_COST, VisCostSource.FORMATION);
         if (use.isClientSide()) {
             return ThaumcraftApiHelper.consumeExactVisFromWand(use.carrier(), use.player(), cost,
-                    VisAction.SIMULATE).affordable()
+                    VisAction.SIMULATE, VisCostSource.FORMATION).affordable()
                     ? FocusUseResult.SUCCESS : refusedFormation();
         }
         boolean formed = WandFormationApi.convert(new UseOnContext(use.player(), use.hand(), hit), cost,
