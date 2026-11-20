@@ -1,5 +1,5 @@
 {
-  "itemGroup.isorropia": "Thaumic Horizons",
+  "itemGroup.isorropia": "神秘视界",
   "block.isorropia.curative_vat": "疗愈培养槽",
   "block.isorropia.vat_interior": "槽体内腔",
   "block.isorropia.modified_matrix": "改造矩阵",
@@ -88,7 +88,7 @@
   "aspect.isorropia.superbia": "傲慢（Superbia）",
   "aspect.isorropia.desidia": "怠惰（Desidia）",
   "aspect.isorropia.ira": "愤怒（Ira）",
-  "tc.research_category.isorropia:isorropia": "Thaumic Horizons",
+  "tc.research_category.isorropia:isorropia": "神秘视界",
   "isorropia.research_page.cultivation.1": "无机物通过炼金术改造起来相当容易，但生物很少能在这一过程中存活下来。你近期的研究走了一条不太一样的路子——你不再试图直接改造植物，而是用炼金术去催化它们的自然生命周期。<BR>把常见粮食作物的种子浸泡在光、水与土壤的浓缩精华之中，植物便能以惊人的速度生长。遗憾的是，这个过程代价不菲；这些植物无一例外都会在结果后不久枯死。",
   "tc.research_name.isorropia:cultivation": "培育",
   "tc.research_text.isorropia:cultivation": "加速农业",
