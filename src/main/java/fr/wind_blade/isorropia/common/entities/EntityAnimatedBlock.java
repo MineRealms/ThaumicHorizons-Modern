@@ -7,6 +7,7 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -191,7 +192,10 @@ public class EntityAnimatedBlock extends PathfinderMob {
             if (this.lifetime > 0) {
                 this.lifetime--;
             } else {
-                this.die(this.damageSources().generic());
+                if (!this.level().isClientSide) {
+                    this.settle();
+                }
+                this.remove(Entity.RemovalReason.KILLED);
                 return;
             }
         }

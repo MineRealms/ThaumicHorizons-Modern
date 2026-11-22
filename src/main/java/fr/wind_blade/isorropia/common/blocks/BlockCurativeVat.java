@@ -92,7 +92,8 @@ public class BlockCurativeVat extends Block implements EntityBlock {
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
         // A jar with a creature in it is how anything but the player gets into the vat.
-        if (player.getItemInHand(hand).is(ItemsIS.JAR_SOUL.get()) && master.getContained() == null && !master.isInfusing()) {
+        if (player.getItemInHand(hand).is(ItemsIS.JAR_SOUL.get()) && master.getContained() == null
+                && !master.hasEffigy() && !master.isInfusing()) {
             if (level.isClientSide) {
                 return InteractionResult.sidedSuccess(true);
             }
@@ -134,7 +135,7 @@ public class BlockCurativeVat extends Block implements EntityBlock {
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
-        if (master.getContained() != null || master.isInfusing()) {
+        if (master.getContained() != null || master.hasEffigy() || master.isInfusing()) {
             return InteractionResult.PASS;
         }
         // The vat is free: the wizard steps in, whatever else they were holding.

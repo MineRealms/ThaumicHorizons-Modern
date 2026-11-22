@@ -35,11 +35,11 @@ public class RenderHangingLabel extends EntityRenderer<EntityHangingLabel> {
 
     @Override
     public void render(EntityHangingLabel entity, float yaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light) {
-        // The chain the 1.12 renderer used: flip upright, turn with the entity, face outwards, off the wall.
+        // Same face-out orientation as a vanilla painting: HangingEntity.yRot is direction * 90 and
+        // the quad faces -Z, so 180 - yRot points the label outwards without turning the aspect upside down.
         poseStack.pushPose();
-        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
-        poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(partialTick, entity.yRotO, entity.getYRot())));
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(
+                180.0F - Mth.lerp(partialTick, entity.yRotO, entity.getYRot())));
         poseStack.translate(0.0F, 0.0F, 0.03F);
         VertexConsumer label = buffers.getBuffer(RenderType.entityTranslucent(LABEL));
         quad(poseStack, label, 0.0F, LABEL_HALF, 0xFFFFFF, 1.0F, light);

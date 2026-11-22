@@ -300,7 +300,12 @@ public class EntityGolemTH extends PathfinderMob {
                     this.restrictTo(maker.blockPosition(), 16);
                 }
             } else {
-                this.die(this.damageSources().generic());
+                // A timed-out golem settles into its block and is removed at once. Going through
+                // die() left a 0-HP "animated block" with an empty health bar ticking for 20 frames.
+                if (!this.level().isClientSide) {
+                    this.settle();
+                }
+                this.remove(Entity.RemovalReason.KILLED);
                 return;
             }
         }
@@ -367,8 +372,8 @@ public class EntityGolemTH extends PathfinderMob {
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (this.getCore() == -1 && stack.getItem() instanceof GolemCoreItem coreItem && coreItem.coreId() != null) {
-            int core = dev.tc4port.thaumcraft.common.GolemCoreId.BUILT_INS.indexOf(coreItem.coreId());
+        if (this.getCore() == -1 && stack.getItem() instanceof GolemCoreItem coreItem && coreItem.coreId(stack) != null) {
+            int core = dev.tc4port.thaumcraft.common.GolemCoreId.BUILT_INS.indexOf(coreItem.coreId(stack));
             if (core >= 0) {
                 this.setCore(core);
                 if (!player.getAbilities().instabuild) {
@@ -380,7 +385,7 @@ public class EntityGolemTH extends PathfinderMob {
             return InteractionResult.PASS;
         }
         if (this.getCore() != -1 && stack.getItem() instanceof GolemUpgradeItem upgradeItem) {
-            int id = GolemUpgradeId.BUILT_INS.indexOf(upgradeItem.upgradeId());
+            int id = GolemUpgradeId.BUILT_INS.indexOf(GolemUpgradeItem.upgradeId(stack));
             if (id >= 0 && this.getUpgradeAmount(id) < 2) {
                 for (int slot = 0; slot < this.getGolemType().upgrades; slot++) {
                     if (this.getUpgrade(slot) == -1 && this.setUpgrade(slot, id)) {

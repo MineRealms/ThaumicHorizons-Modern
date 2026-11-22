@@ -213,6 +213,12 @@ public class TileVat extends BlockEntity implements EssentiaTransport, AspectCon
         if (mode == MODE_INFUSING) {
             return;
         }
+        // A creature and an effigy can never share the vat. Older saves could end up with both
+        // (the jar path did not check for an effigy); the creature wins and the spent effigy is cleared.
+        if (contained != null && hasEffigy) {
+            hasEffigy = false;
+            effigyEssentia = 0;
+        }
         if (mode == MODE_SELF_READY && contained == null && hasEffigy) {
             return;
         }

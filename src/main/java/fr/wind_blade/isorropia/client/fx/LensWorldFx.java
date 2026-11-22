@@ -211,19 +211,19 @@ public final class LensWorldFx {
         double x = Mth.lerp(partialTick, target.xOld, target.getX());
         double y = Mth.lerp(partialTick, target.yOld, target.getY());
         double z = Mth.lerp(partialTick, target.zOld, target.getZ());
-        boolean hasAspects = !AspectQueryApi.entity(target).amounts().isEmpty();
-        double labelY = y + target.getBbHeight() + (hasAspects ? 1.1 : 0.6);
+        // Keep the name just above the head like a vanilla name tag. The old extra offset pushed it
+        // above the viewport whenever the creature was close, and the hand-rolled yaw mirrored the text.
+        double labelY = y + target.getBbHeight() + 0.5;
         String text = target instanceof ItemEntity item ? item.getItem().getHoverName().getString()
                 : target.getName().getString();
-        float yaw = (float) (Math.atan2(cameraPos.x - x, cameraPos.z - z) * 180.0 / Math.PI);
         Font font = minecraft.font;
         poseStack.pushPose();
         poseStack.translate(x - cameraPos.x, labelY - cameraPos.y, z - cameraPos.z);
-        poseStack.mulPose(Axis.YP.rotationDegrees(yaw + 180.0F));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
+        poseStack.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
         float scale = NAME_SCALE * grown;
-        poseStack.scale(scale, scale, scale);
-        font.drawInBatch(text, 1.0F - font.width(text) / 2.0F, 1.0F, 0xFFFFFF, false, poseStack.last().pose(),
+        // Vanilla name tags flip X and Y so the font's top-down coordinates read upright in world space.
+        poseStack.scale(-scale, -scale, scale);
+        font.drawInBatch(text, -font.width(text) / 2.0F, 0.0F, 0xFFFFFF, false, poseStack.last().pose(),
                 buffers, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
         poseStack.popPose();
     }
